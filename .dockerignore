@@ -12,9 +12,10 @@ build
 corpus
 approved-corpus
 .corpus-approval
-data
+data/*
 *.db
 *.sqlite*
 *.mARkdown
 *.completed
 config/corpus_manifest.approved.json
+!data/takhrij.db

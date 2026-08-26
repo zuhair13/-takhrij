@@ -311,6 +311,13 @@ def load_manifest(path: Path) -> CorpusManifest:
             raise ManifestError(
                 f"approved_corpus approval.status must be one of {sorted(APPROVAL_STATUSES)}"
             )
+        if (
+            approval.status == "written_permission_granted"
+            and "REPLACE_WITH" in approval.reference.upper()
+        ):
+            raise ManifestError(
+                "written_permission_granted requires a real approval.reference"
+            )
         if source_root_env is None:
             raise ManifestError("approved_corpus manifests require source_root_env")
 

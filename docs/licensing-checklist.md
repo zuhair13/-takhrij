@@ -34,8 +34,8 @@ covers all of the following:
 - use of the named, version-specific files from release 2025.1.9 in this cash-prize hackathon;
 - creation of a derived SQLite database containing stripped text and postings;
 - the intended access model: private judge access, public demo access, or both;
-- storage and processing in Google Cloud and mounting the database into Cloud Run;
-- any redistribution in a submission archive, container layer, artifact registry, or repository;
+- storage and processing in Google Cloud and baking the database into a Cloud Run image;
+- redistribution in a container layer, Artifact Registry, judge/public service, or submission;
 - the exact attribution, licence notice, modification notice, and ShareAlike treatment required
   for source files and the derived database; and
 - confirmation that OpenITI's licence grant covers the upstream digitization versions selected,
@@ -63,7 +63,8 @@ Suggested concise request to OpenITI/KITAB:
 
 > May a solo participant use the specifically identified files from OpenITI release 2025.1.9 as
 > read-only search inputs in a public hackathon demo eligible for a cash prize; create a derived
-> SQLite database containing stripped text and token postings; process and mount that database on
-> Google Cloud/Cloud Run; and provide it to judges or the public? Please state the required
+> SQLite database containing stripped text and token postings; bake that read-only database into a
+> Google Cloud/Cloud Run image; and provide the image or service to judges or the public? Please
+> state the required
 > attribution, modification notice, ShareAlike treatment, redistribution limits, and whether your
 > permission covers each named upstream digitization.

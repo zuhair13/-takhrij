@@ -8,6 +8,7 @@ from scripts.check_corpus_boundary import (
     find_build_context_gaps,
     find_tracked_leaks,
     find_workspace_leaks,
+    fixture_database_is_reproducible,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class CorpusBoundaryTests(unittest.TestCase):
     def test_repository_build_and_tracking_boundaries_are_clean(self):
+        self.assertTrue(
+            fixture_database_is_reproducible(ROOT, ROOT / "data" / "takhrij.db")
+        )
+        self.assertEqual(find_workspace_leaks(ROOT), [])
         self.assertEqual(find_tracked_leaks(ROOT), [])
         self.assertEqual(find_build_context_gaps(ROOT), [])
 

@@ -57,6 +57,11 @@ class IndexTests(unittest.TestCase):
         self.assertEqual(first_result["database_sha256"], second_result["database_sha256"])
         self.assertEqual(first_result["corpus_sha256"], second_result["corpus_sha256"])
 
+    def test_tracked_fixture_database_matches_a_fresh_build(self):
+        rebuilt = Path(self.temp.name) / "tracked-comparison.db"
+        build_index(MANIFEST, rebuilt)
+        self.assertEqual((ROOT / "data" / "takhrij.db").read_bytes(), rebuilt.read_bytes())
+
     def test_exact_search_does_not_silently_strip_clitics(self):
         hits, total, truncated = self.index.search(
             [Variant("تخريج", "input")],

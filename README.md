@@ -9,11 +9,10 @@ It searches exact normalized tokens, classifies their contexts, requires a Devil
 to audit the search trace, optionally searches missed variants, and releases a dossier only
 after a deterministic Issuance Gate verifies every quote, source, offset, and date field.
 
-This repository implements Revision 4.1. It intentionally contains neither an OpenITI corpus nor
-a derived corpus database. Repository-authored synthetic texts under `tests/fixtures` exercise
-plain-text and OpenITI-shaped ingestion, exact retrieval, verdict reversal, and the Gate without
-presenting fixtures as historical evidence. Fixture databases are built in temporary or ignored
-paths and are never shipped.
+This repository implements Revision 4.1. It intentionally contains no OpenITI corpus. The tracked
+`data/takhrij.db` is a byte-reproducible database built only from repository-authored synthetic
+texts under `tests/fixtures`; it preserves the frozen fixture-image deployment and is never
+historical evidence. Tests also rebuild databases in temporary paths.
 
 ## Current status
 
@@ -28,8 +27,8 @@ paths and are never shipped.
 | Production OpenITI release and book list | Deliberately blocked pending written permission and post-permission verification |
 | Live Gemini/Firestore/Pub/Sub integration | Deliberately blocked pending cloud credentials and project setup |
 
-Verification snapshot (26 Aug 2026): 75 tests pass, including an actual ADK `Runner` execution
-with all six registered `FunctionTool` objects observed in the run; branch coverage is 87% against
+Verification snapshot (26 Aug 2026): 80 tests pass, including an actual ADK `Runner` execution
+with all six registered `FunctionTool` objects observed in the run; branch coverage is 86% against
 the configured 85% threshold. Ruff, Python compilation, Cloud Build YAML parsing, the corpus-
 boundary scan, and the runtime-provider scan are clean. Bash, Node.js, and a Docker-compatible
 engine are unavailable in this environment, so shell syntax, JavaScript syntax, and a container
@@ -131,9 +130,12 @@ similarity. Similarity search would add silent false positives without answering
   the verdict becomes `INCONCLUSIVE`.
 - A non-`uncertain` model label below the deterministic 0.80 confidence floor is converted to
   `uncertain`; low-confidence `target_use` can never break the claim.
-- Approved source roots and derived databases must remain outside the repository. Git, Python
-  package, Docker, and workspace scans reject corpus-shaped files and SQLite artifacts;
-  production startup rejects fixture databases.
+- Approved source roots and derived databases stay outside the repository. The only tracked
+  database is the byte-reproducible synthetic fixture. Git, Python-package, Docker-context, and
+  workspace scans reject other corpus artifacts; production startup rejects fixture databases.
+- The default Docker build bakes the fixture database at `/app/data/takhrij.db`. A real database
+  can enter an isolated image context only through the written-permission and explicit-opt-in
+  approved-image builder. The database is mode `0444` in the image; no runtime mount is used.
 
 ## Local deterministic verification
 
@@ -142,7 +144,7 @@ Python 3.12 is required. Install the pinned runtime before running the complete 
 ```bash
 python -m pip install -e .
 PYTHONPATH=src python -m takhrij.index_builder \
-  config/corpus_manifest.fixture.json build/fixture/takhrij.db
+  config/corpus_manifest.fixture.json data/takhrij.db
 PYTHONPATH=src python -m unittest discover -s tests -v
 python scripts/check_corpus_boundary.py
 PYTHONPATH=src python scripts/run_fixture_demo.py
@@ -166,7 +168,7 @@ py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -e .
 $env:APP_ENV = "development"
-$env:CORPUS_DB_PATH = "build/fixture/takhrij.db"
+$env:CORPUS_DB_PATH = "data/takhrij.db"
 $env:CORPUS_RELEASE = "FIXTURE-ONLY"
 $env:CORPUS_BOOK_IDS = "fixture-early,fixture-late,fixture-markup"
 $env:PUBSUB_AUDIENCE = "http://localhost:8080/worker"
@@ -174,10 +176,10 @@ $env:PUBSUB_SERVICE_ACCOUNT = "local-test@example.invalid"
 python -m flask --app "takhrij.web:create_app()" run --port 8080
 ```
 
-Build the ignored fixture database with the command in the previous section before starting the
-web app. The fixture web app queues jobs but does not call the cloud model unless a worker is
-invoked with a valid configured identity. The synthetic reversal script builds its own temporary
-database and is the offline smoke test.
+The fixture web app queues jobs but does not call the cloud model unless a worker is invoked with a
+valid configured identity. The synthetic reversal script builds its own temporary database and is
+the offline smoke test. `docker build -t takhrij:fixture .` preserves the existing fixture image;
+run it only with development settings because production startup rejects fixture content.
 
 ## Approved corpus swap (currently blocked)
 
@@ -191,38 +193,43 @@ exact release, files, rights, and distribution plan. Then:
    record stored outside Git.
 3. Put the approved, hash-pinned inputs in an external directory and set
    `TAKHRIJ_APPROVED_CORPUS_ROOT` to that directory.
-4. Build the database to an external path with the explicit approval flag:
+4. Build the approved image with the dedicated explicit opt-in workflow:
 
 ```bash
-PYTHONPATH=src python -m takhrij.index_builder \
-  --allow-approved-corpus config/corpus_manifest.approved.json /external/corpus/takhrij.db
-sqlite3 /external/corpus/takhrij.db "select * from corpus_metadata;"
+PYTHONPATH=src python scripts/build_approved_image.py \
+  config/corpus_manifest.approved.json \
+  REGION-docker.pkg.dev/PROJECT/REPOSITORY/takhrij:TAG \
+  --allow-approved-corpus-image
 ```
 
-The builder refuses approved content without all three controls: the explicit flag, the exact
-written-permission status, and source/output paths outside the repository. The manifest release
-and book IDs must exactly match the production environment or the service refuses to start.
-Production additionally refuses a database labelled `synthetic_fixture`.
+The workflow refuses approved content without the explicit image flag, exact
+`written_permission_granted` status, and an external source root. It creates a temporary build
+context outside the repository, builds `takhrij.db` there, bakes it into the image at
+`/app/data/takhrij.db`, makes it read-only, runs Docker without a shell, and deletes the context.
+The Dockerfile independently rejects `approved_corpus` content unless the helper supplies its
+dedicated build opt-in, so an ordinary `docker build` remains fixture-only.
+Neither corpus sources nor the derived real database enter Git or Python source archives. The
+manifest release and book IDs must exactly match the production environment or the service
+refuses to start. Production additionally refuses a database labelled `synthetic_fixture`.
 
 ## Cloud deployment order
 
 1. Run `deploy/bootstrap.sh PROJECT_ID REGION` from Cloud Shell. It enables APIs, creates
    dedicated runtime, push, and build service accounts, creates Firestore if needed, deploys the
    hello container, and refuses to finish until the URL returns `hello`.
-2. Resolve permission, build the production corpus database outside the repository, and configure
-   a read-only `/corpus/takhrij.db` runtime mount. The image deliberately contains no database.
-3. Set the non-placeholder Cloud Build substitutions. The audience is the stable Cloud Run URL
+2. Resolve permission and use the approved-image workflow to bake the read-only database into the
+   image. Push only that explicitly authorized image to the existing Artifact Registry.
+3. Set the non-placeholder deployment variables. The audience is the stable Cloud Run URL
    plus `/worker`.
-4. Submit `cloudbuild.yaml` once with the dedicated `takhrij-build` service account, then connect
-   the repository and create a push-to-main trigger using that same account. Do not assume the
-   legacy `${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com` identity exists on a new project.
-   The bootstrap grants the dedicated identity the official Cloud Build Service Account role,
-   Cloud Run Admin, and only `actAs` access on the Takhrij runtime identity.
+4. Deploy the already-built approved image with the dedicated build/deploy identity. The checked-in
+   `cloudbuild.yaml` continues to build the synthetic fixture image for engineering rehearsal; it
+   is not an authorization path for a real corpus image. Do not assume the legacy
+   `${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com` identity exists on a new project.
 5. Run `deploy/configure_pubsub.sh PROJECT_ID REGION` after the real service is live.
 6. Replay one Pub/Sub message deliberately and confirm a single final dossier plus multiple
    `attempt_id` log entries.
 
-Do not run this sequence until the licence gate and external runtime mount are resolved.
+Do not run this sequence until the licence gate and baked-image authorization are resolved.
 `cloudbuild.yaml` pins `gemini-3.5-flash`, sets the 60-minute Cloud Run request timeout, and uses
 one Gunicorn process with threaded request handling. Cloud Run concurrency is four, while the
 Firestore quota transaction permits only one active public research job.

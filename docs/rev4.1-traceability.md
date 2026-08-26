@@ -8,7 +8,7 @@
 | Source-agnostic ingestion | `manifest.py`, `ingestion.py` | plain-text, markup, hash, malformed-input tests |
 | Raw offsets | `normalization.py`, `ingestion.py`, `index.py` | raw recovery and markup-ingestion offset tests |
 | Provenance and approval manifest | schema + `manifest.py` | schema shape, date source, path, approval tests |
-| Corpus packaging boundary | ignore rules, Dockerfile, boundary scan | workspace, tracked-file, and build-context tests |
+| Corpus packaging boundary | ignore rules, baked-image builder, Dockerfile, boundary scan | reproducible fixture, explicit opt-in, isolated-context, and leakage tests |
 | Three model roles | `agent.py` | ADK runner test with deterministic model doubles; live Gemini pending credentials |
 | ADK orchestration | dynamic `takhrij_orchestrator` | actual `Runner.run_async` end-to-end test |
 | Deterministic tools | `adk_tools.py` registry + `ctx.run_node(FunctionTool)` | workflow test records all six tool executions |

@@ -18,8 +18,9 @@ These are specification closures and safety bounds, not new product features.
 | Accept ADK Runner `Content` at the workflow root | `Runner.run_async()` supplies a Content object, not the JSON string annotation used in the first draft | The real ADK runner reaches the first node |
 | Issue truncated results as `INCONCLUSIVE` | Incomplete coverage is a valid dossier outcome, not a Gate integrity failure | Verified evidence remains visible with an honest verdict |
 | Treat parsed text as the immutable raw retrieval layer | Markup controls are not evidence, while Arabic glyphs and quote offsets must remain exact | Every posting points into the exact post-markup string stored and hashed in SQLite |
-| Require external approved-corpus roots and outputs | Permission to use data must not imply permission to commit or ship it | Real files and derived databases cannot enter Git or the image through the normal workflow |
-| Keep corpus approval machine-readable and fail-closed | A generic licence label does not resolve the hackathon's cash-prize and redistribution facts | Approved builds require written-permission status plus an explicit command flag |
+| Bake the read-only SQLite database into the image | Revision 4.1 freezes corpus and runtime together | `/app/data/takhrij.db` is mode `0444`; no runtime corpus mount or new cloud service exists |
+| Isolate approved image contexts | Permission to use data must not imply permission to commit it | Real sources remain external; only the derived database enters a temporary opted-in Docker context |
+| Keep corpus approval machine-readable and fail-closed | A generic licence label does not resolve the hackathon's cash-prize and redistribution facts | Approved database and image builds each require written-permission status plus distinct explicit flags |
 
 ## Date caveat
 

@@ -171,6 +171,15 @@ class ManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(PermissionError, "written_permission_granted"):
                 build_index(APPROVED_EXAMPLE, output, allow_approved_corpus=True)
 
+    def test_written_permission_status_rejects_placeholder_reference(self):
+        data = json.loads(APPROVED_EXAMPLE.read_text(encoding="utf-8"))
+        data["approval"]["status"] = "written_permission_granted"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid.json"
+            path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaisesRegex(ManifestError, "real approval.reference"):
+                load_manifest(path)
+
     def test_approved_database_cannot_be_written_inside_repository(self):
         manifest = load_manifest(APPROVED_EXAMPLE)
         approved = replace(

@@ -75,14 +75,18 @@ its model call, but its final CAS fails if another `attempt_id` owns the job.
 
 ## Corpus supply-chain boundary
 
-The repository contains synthetic fixtures only. A strict manifest declares the source format,
-hash, release, licence, approval, bibliographic provenance, and quality limits. Plain text is kept
-byte-faithful after UTF-8 decoding; the OpenITI-shaped adapter removes supported controls without
-normalizing Arabic and records offsets into the exact resulting string stored in SQLite.
+The repository contains synthetic fixtures and their byte-reproducible SQLite index only. A strict
+manifest declares the source format, hash, release, licence, approval, bibliographic provenance,
+and quality limits. Plain text is kept byte-faithful after UTF-8 decoding; the OpenITI-shaped
+adapter removes supported controls without normalizing Arabic and records offsets into the exact
+resulting string stored in SQLite.
 
-Real inputs and derived databases must be external to the repository. An approved build requires
-an explicit command flag and `written_permission_granted` manifest status. Git/Docker ignore
-rules, source-package exclusions, and a boundary scanner reject corpus-shaped files or SQLite
-databases, the container image has no corpus `COPY`, and production startup rejects a
-fixture-labelled database. The eventual runtime database must be mounted read-only at
-`/corpus/takhrij.db` after the licence gate is cleared.
+Real inputs and derived databases remain external to the repository. An approved image build
+requires an explicit command flag and `written_permission_granted` manifest status. The builder
+creates an isolated temporary context, builds only the derived database into it, and bakes that
+database into `/app/data/takhrij.db`; the Dockerfile sets mode `0444`, and SQLite is opened in
+read-only mode. The Dockerfile also requires a dedicated build opt-in when database metadata says
+`approved_corpus`; its default path accepts only the reproducible fixture database. Git/Docker
+rules, source-package exclusions, and the boundary scanner allow only that fixture database in the
+ordinary checkout. Production startup rejects a fixture-labelled database. No runtime corpus
+mount or additional cloud storage service exists.

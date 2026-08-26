@@ -18,3 +18,4 @@ build/
 config/corpus_manifest.json
 /config/corpus_manifest.approved.json
 config/*.secret.json
+!/data/takhrij.db

@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import subprocess
+import tempfile
 from pathlib import Path
+
+from takhrij.index_builder import build_index
 
 ROOT = Path(__file__).resolve().parents[1]
 SQLITE_MAGIC = b"SQLite format 3\x00"
@@ -14,6 +17,7 @@ ALLOWED_OPENITI_SHAPED_FIXTURES = {
     Path("tests/fixtures/corpus/openiti-synthetic.txt"),
 }
 ALLOWED_NON_CORPUS_SQLITE = {Path(".coverage")}
+FIXTURE_DATABASE = Path("data/takhrij.db")
 FORBIDDEN_TRACKED_PREFIXES = (
     "corpus/",
     "approved-corpus/",
@@ -30,17 +34,19 @@ REQUIRED_GITIGNORE = {
     "*.mARkdown",
     "*.completed",
     "/config/corpus_manifest.approved.json",
+    "!/data/takhrij.db",
 }
 REQUIRED_DOCKERIGNORE = {
     "corpus",
     "approved-corpus",
     ".corpus-approval",
-    "data",
+    "data/*",
     "*.db",
     "*.sqlite*",
     "*.mARkdown",
     "*.completed",
     "config/corpus_manifest.approved.json",
+    "!data/takhrij.db",
 }
 REQUIRED_MANIFEST_RULES = {
     "prune corpus",
@@ -72,6 +78,16 @@ def _tracked_files(root: Path) -> list[Path]:
     ]
 
 
+def fixture_database_is_reproducible(root: Path, database_path: Path) -> bool:
+    manifest = root / "config" / "corpus_manifest.fixture.json"
+    if not manifest.is_file() or not database_path.is_file():
+        return False
+    with tempfile.TemporaryDirectory(prefix="takhrij-boundary-") as directory:
+        rebuilt = Path(directory) / "takhrij.db"
+        build_index(manifest, rebuilt)
+        return database_path.read_bytes() == rebuilt.read_bytes()
+
+
 def find_workspace_leaks(root: Path) -> list[str]:
     findings: list[str] = []
     for path in root.rglob("*"):
@@ -86,7 +102,14 @@ def find_workspace_leaks(root: Path) -> list[str]:
         except OSError as exc:
             findings.append(f"{relative}: cannot inspect file: {exc}")
             continue
-        if prefix == SQLITE_MAGIC and relative not in ALLOWED_NON_CORPUS_SQLITE:
+        if (
+            prefix == SQLITE_MAGIC
+            and relative not in ALLOWED_NON_CORPUS_SQLITE
+            and (
+                relative != FIXTURE_DATABASE
+                or not fixture_database_is_reproducible(root, path)
+            )
+        ):
             findings.append(f"{relative}: SQLite database inside repository workspace")
         if relative not in ALLOWED_OPENITI_SHAPED_FIXTURES and prefix.startswith(OPENITI_MAGIC):
             findings.append(f"{relative}: OpenITI content inside repository workspace")
@@ -99,7 +122,12 @@ def find_tracked_leaks(root: Path) -> list[str]:
         normalized = path.as_posix()
         if normalized.startswith(FORBIDDEN_TRACKED_PREFIXES):
             findings.append(f"{normalized}: forbidden corpus/approval path is tracked")
-        if normalized.lower().endswith(tuple(item.lower() for item in FORBIDDEN_TRACKED_SUFFIXES)):
+        if normalized == FIXTURE_DATABASE.as_posix():
+            if not fixture_database_is_reproducible(root, root / path):
+                findings.append(f"{normalized}: tracked fixture database is not reproducible")
+        elif normalized.lower().endswith(
+            tuple(item.lower() for item in FORBIDDEN_TRACKED_SUFFIXES)
+        ):
             findings.append(f"{normalized}: corpus or derived-data file type is tracked")
     return findings
 
@@ -122,9 +150,19 @@ def find_build_context_gaps(root: Path) -> list[str]:
     for item in _missing_lines(root / "MANIFEST.in", REQUIRED_MANIFEST_RULES):
         findings.append(f"MANIFEST.in: missing {item}")
     dockerfile = (root / "Dockerfile").read_text(encoding="utf-8").lower()
-    for instruction in ("copy data", "add data", "copy corpus", "add corpus"):
+    for instruction in ("add data", "copy corpus", "add corpus"):
         if instruction in dockerfile:
             findings.append(f"Dockerfile: forbidden instruction contains {instruction!r}")
+    if "copy data/takhrij.db ./data/takhrij.db" not in dockerfile:
+        findings.append("Dockerfile: exact baked fixture database COPY is missing")
+    if "chmod 0444 /app/data/takhrij.db" not in dockerfile:
+        findings.append("Dockerfile: baked database is not made read-only")
+    if "arg allow_approved_corpus_image=fixture_only" not in dockerfile:
+        findings.append("Dockerfile: approved corpus image opt-in ARG is missing")
+    if "python -m takhrij.image_gate" not in dockerfile:
+        findings.append("Dockerfile: image corpus gate is missing")
+    if "/corpus" in dockerfile or "volume [" in dockerfile:
+        findings.append("Dockerfile: runtime-mounted corpus path is forbidden")
     return findings
 
 
