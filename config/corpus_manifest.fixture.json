@@ -1,31 +1,104 @@
 {
+  "schema_version": 1,
   "release": "FIXTURE-ONLY",
-  "license": "CC0-1.0",
+  "release_date": null,
+  "release_uri": "fixture://release",
+  "release_doi": null,
+  "content_kind": "synthetic_fixture",
+  "license": {
+    "id": "CC0-1.0",
+    "uri": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
   "attribution": "Synthetic test sentences authored for TAKHRIJ; not historical evidence.",
+  "approval": {
+    "status": "not_required",
+    "reference": "Repository-authored synthetic test fixtures only."
+  },
+  "source_root_env": null,
   "documents": [
     {
       "doc_id": "fixture-early",
+      "work_id": "fixture-early",
       "title": "النص التجريبي المبكر",
       "author": "Synthetic Fixture",
       "path": "../tests/fixtures/corpus/early.txt",
       "source_uri": "fixture://early",
+      "source_sha256": "60c4e2448ac54877260304771afeac50b726a2bf10c3fee5edd74b3bf4d031ef",
+      "source_format": "plain_text",
+      "language": "ara",
       "calendar": "AH",
-      "author_death_year_ah": 370,
-      "composition_date_ah": 350,
-      "edition_date": "synthetic",
-      "witness_date": null
+      "selection_reason": "Exercises an early attributed date and a diacritized clitic token.",
+      "provenance": {
+        "metadata_source_uri": "fixture://early/metadata",
+        "author_death_year_ah": 370,
+        "author_date_source_uri": "fixture://early/metadata#author-death",
+        "composition_date_ah": 350,
+        "composition_date_source_uri": "fixture://early/metadata#composition",
+        "edition_citation": "Synthetic fixture authored for TAKHRIJ tests.",
+        "edition_date": "synthetic",
+        "edition_source_uri": "fixture://early/edition",
+        "witness_description": null,
+        "witness_date": null,
+        "witness_source_uri": null,
+        "quality_status": "synthetic",
+        "quality_notes": "Not historical evidence; intentionally contains بالتخريج with marks."
+      }
     },
     {
       "doc_id": "fixture-late",
+      "work_id": "fixture-late",
       "title": "النص التجريبي المتأخر",
       "author": "Synthetic Fixture",
       "path": "../tests/fixtures/corpus/late.txt",
       "source_uri": "fixture://late",
+      "source_sha256": "cb4dbf572677cc7afeaa21863c7e1bbd14089b3920504b4a5698717cab4bded1",
+      "source_format": "plain_text",
+      "language": "ara",
       "calendar": "AH",
-      "author_death_year_ah": 680,
-      "composition_date_ah": 650,
-      "edition_date": "synthetic",
-      "witness_date": null
+      "selection_reason": "Exercises a later attributed date and an exact bare token.",
+      "provenance": {
+        "metadata_source_uri": "fixture://late/metadata",
+        "author_death_year_ah": 680,
+        "author_date_source_uri": "fixture://late/metadata#author-death",
+        "composition_date_ah": 650,
+        "composition_date_source_uri": "fixture://late/metadata#composition",
+        "edition_citation": "Synthetic fixture authored for TAKHRIJ tests.",
+        "edition_date": "synthetic",
+        "edition_source_uri": "fixture://late/edition",
+        "witness_description": null,
+        "witness_date": null,
+        "witness_source_uri": null,
+        "quality_status": "synthetic",
+        "quality_notes": "Not historical evidence; intentionally contains bare تخريج."
+      }
+    },
+    {
+      "doc_id": "fixture-markup",
+      "work_id": "fixture-markup",
+      "title": "النص التجريبي ذو العلامات",
+      "author": "Synthetic Fixture",
+      "path": "../tests/fixtures/corpus/openiti-synthetic.txt",
+      "source_uri": "fixture://openiti-markup",
+      "source_sha256": "5963d2cb42f7c03382962c199c7cd9c953e7c7eb2a4403f06a380623fa4c1d61",
+      "source_format": "openiti_mARkdown",
+      "language": "ara",
+      "calendar": "AH",
+      "selection_reason": "Exercises deterministic markup stripping and post-ingestion offsets.",
+      "provenance": {
+        "metadata_source_uri": "fixture://openiti-markup/metadata",
+        "author_death_year_ah": 410,
+        "author_date_source_uri": "fixture://openiti-markup/metadata#author-death",
+        "composition_date_ah": 400,
+        "composition_date_source_uri": "fixture://openiti-markup/metadata#composition",
+        "edition_citation": "Synthetic OpenITI-shaped fixture authored for TAKHRIJ tests.",
+        "edition_date": "synthetic",
+        "edition_source_uri": "fixture://openiti-markup/edition",
+        "witness_description": null,
+        "witness_date": null,
+        "witness_source_uri": null,
+        "quality_status": "synthetic",
+        "quality_notes": "Contains invented OpenITI-shaped controls and no historical content."
+      }
     }
   ]
 }

@@ -1,0 +1,10 @@
+prune corpus
+prune approved-corpus
+prune .corpus-approval
+prune data
+global-exclude *.db
+global-exclude *.sqlite
+global-exclude *.sqlite3
+global-exclude *.mARkdown
+global-exclude *.completed
+exclude config/corpus_manifest.approved.json

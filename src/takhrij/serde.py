@@ -53,8 +53,17 @@ def provenance_from_dict(data: dict[str, Any]) -> Provenance:
     return Provenance(
         author_death_year_ah=data.get("author_death_year_ah"),
         composition_date_ah=data.get("composition_date_ah"),
+        metadata_source_uri=data.get("metadata_source_uri"),
+        author_date_source_uri=data.get("author_date_source_uri"),
+        composition_date_source_uri=data.get("composition_date_source_uri"),
+        edition_citation=data.get("edition_citation"),
         edition_date=data.get("edition_date"),
+        edition_source_uri=data.get("edition_source_uri"),
+        witness_description=data.get("witness_description"),
         witness_date=data.get("witness_date"),
+        witness_source_uri=data.get("witness_source_uri"),
+        quality_status=data.get("quality_status"),
+        quality_notes=data.get("quality_notes"),
     )
 
 
@@ -76,6 +85,15 @@ def hit_from_dict(data: dict[str, Any]) -> RetrievalHit:
         match=str(data["match"]),
         suffix=str(data["suffix"]),
         provenance=provenance_from_dict(data["provenance"]),
+        work_id=str(data.get("work_id", "")),
+        language=str(data.get("language", "ara")),
+        source_format=str(data.get("source_format", "")),
+        parser_version=str(data.get("parser_version", "")),
+        source_sha256=str(data.get("source_sha256", "")),
+        raw_text_sha256=str(data.get("raw_text_sha256", "")),
+        license_id=str(data.get("license_id", "")),
+        license_uri=str(data.get("license_uri", "")),
+        selection_reason=str(data.get("selection_reason", "")),
     )
 
 

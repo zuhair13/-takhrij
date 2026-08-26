@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 
 from takhrij.gate import IssuanceGate
 from takhrij.index import CorpusIndex
+from takhrij.index_builder import build_index
 from takhrij.models import AuditFinding, AuditReport, Claim, MatchClass
 from takhrij.pipeline import (
     apply_classifications,
@@ -31,9 +33,7 @@ def decisions(hits):
     ]
 
 
-def main() -> None:
-    root = Path(__file__).resolve().parents[1]
-    index = CorpusIndex(root / "data" / "takhrij.db")
+def run_demo(index: CorpusIndex) -> None:
     claim = Claim(
         form="تخريج",
         target_sense="دليل يُستند إليه في الاستدلال",
@@ -90,6 +90,14 @@ def main() -> None:
             indent=2,
         )
     )
+
+
+def main() -> None:
+    root = Path(__file__).resolve().parents[1]
+    with tempfile.TemporaryDirectory(prefix="takhrij-fixture-") as directory:
+        database = Path(directory) / "fixture.db"
+        build_index(root / "config" / "corpus_manifest.fixture.json", database)
+        run_demo(CorpusIndex(database))
 
 
 if __name__ == "__main__":

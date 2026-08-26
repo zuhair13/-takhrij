@@ -9,3 +9,12 @@ upload
 dist
 build
 *.egg-info
+corpus
+approved-corpus
+.corpus-approval
+data
+*.db
+*.sqlite*
+*.mARkdown
+*.completed
+config/corpus_manifest.approved.json

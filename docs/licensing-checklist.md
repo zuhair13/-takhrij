@@ -1,31 +1,69 @@
 # Corpus licensing gate
 
-Production indexing is blocked until every item below is resolved. This is an engineering gate,
-not legal advice.
+Production downloading, metadata capture, indexing, redistribution, upload, and deployment are
+blocked. This is an engineering gate, not legal advice. As of 26 August 2026, the repository
+contains only repository-authored synthetic fixtures.
 
-- [ ] Record the exact OpenITI release identifier and DOI.
-- [ ] Save the licence text that applies to that exact release.
-- [ ] Confirm whether participation in a cash-prize contest is permitted under NonCommercial.
-- [ ] Compare ShareAlike obligations with the submission licence granted to the organizer.
-- [ ] Confirm whether baking selected digitized texts into a public container is redistribution.
-- [ ] If redistribution is not clearly allowed, keep `takhrij.db` in a private build context and
-      grant judges access only as permitted.
-- [ ] Attribute the release, each selected URI, and upstream digitization source.
-- [ ] Record text quality, edition, OCR status, and completeness for every selected book.
-- [ ] Keep application code licensing separate from corpus/data licensing.
-- [ ] Retain written permission or clarification with the submission records.
+## Facts verified from primary sources
 
-Official starting points:
+- The newest full OpenITI snapshot found on the official Zenodo release series is version
+  **2025.1.9**, published 30 December 2025, DOI
+  [`10.5281/zenodo.17767721`](https://doi.org/10.5281/zenodo.17767721). Its landing page lists a
+  5.9 GB full-data archive, a 12.1 MB metadata table, and release notes. None was downloaded.
+- OpenITI also published a primary-version-only dataset for **2025.1.9** on 12 February 2026,
+  DOI [`10.5281/zenodo.18613982`](https://doi.org/10.5281/zenodo.18613982). Its landing page says
+  it contains the version marked `PRI` for each text. Its 2.9 GB archive and 7.0 MB metadata table
+  were not downloaded.
+- [OpenITI's documentation](https://openiti.org/documentation/) says releases are published under
+  [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en), requests
+  citation of the specific file URIs, and warns that source and text quality vary.
+- The CC legal code applies Attribution, NonCommercial, and ShareAlike conditions and contains
+  specific database-rights provisions. Creative Commons' [NonCommercial FAQ](https://creativecommons.org/faq/#does-my-use-violate-the-noncommercial-clause-of-the-licenses)
+  says the test depends on whether the use is primarily intended for commercial advantage or
+  monetary compensation. It does not decide this hackathon's facts for us.
 
-- [OpenITI documentation](https://openiti.org/documentation/) states CC BY-NC-SA 4.0 for releases.
-- [Release 2025.1.9](https://zenodo.org/records/17767721), published 30 Dec 2025, is the latest
-  verified candidate at the time this specification was implemented. It is not silently selected;
-  the final book list and licence decision remain required.
+These facts do not themselves establish that a cash-prize demo, judge access, public Cloud Run
+service, or derived SQLite redistribution is permitted.
 
-Suggested concise question to OpenITI:
+## Written approval required
 
-> May a solo participant use a small attributed subset of OpenITI release 2025.1.9 as a read-only
-> search input in a free public hackathon demo that is eligible for a cash prize, and may the
-> derived SQLite postings database be baked into a private judge-accessible container without
-> separate public redistribution? The project will preserve attribution, release identifiers,
-> source URIs, and CC BY-NC-SA notices and will not claim ownership of the corpus.
+Before changing `approval.status` to `written_permission_granted`, retain a written response from
+OpenITI/KITAB or another rights holder with authority over the selected material that expressly
+covers all of the following:
+
+- use of the named, version-specific files from release 2025.1.9 in this cash-prize hackathon;
+- creation of a derived SQLite database containing stripped text and postings;
+- the intended access model: private judge access, public demo access, or both;
+- storage and processing in Google Cloud and mounting the database into Cloud Run;
+- any redistribution in a submission archive, container layer, artifact registry, or repository;
+- the exact attribution, licence notice, modification notice, and ShareAlike treatment required
+  for source files and the derived database; and
+- confirmation that OpenITI's licence grant covers the upstream digitization versions selected,
+  or separate permission from the relevant upstream rights holder where it does not.
+
+The written response must be saved outside Git and referenced by a non-secret record identifier in
+the approved manifest. A repository maintainer must approve the exact release, four-or-five-file
+list, source hashes, attribution, and planned distribution before any fetch or build.
+
+## Remaining checklist
+
+- [x] Record the newest verified full and primary-only release landing pages and version.
+- [x] Record OpenITI's published corpus licence and the canonical legal code.
+- [ ] Obtain written permission covering the cash-prize use and deployment/distribution model.
+- [ ] Obtain and review the hackathon submission licence; compare it with BY-NC-SA obligations.
+- [ ] Confirm the rights and required attribution for each exact upstream digitization.
+- [ ] After permission, pin the exact release files, version IDs, checksums, and `PRI` status.
+- [ ] After permission, verify author/composition dates, edition or witness data, quality, and
+      completeness for every candidate from authoritative sources.
+- [ ] Decide whether the derived database may be shared and under which licence; never assume the
+      Apache-2.0 application licence applies to corpus content.
+- [ ] Obtain maintainer approval of the completed manifest and distribution plan.
+
+Suggested concise request to OpenITI/KITAB:
+
+> May a solo participant use the specifically identified files from OpenITI release 2025.1.9 as
+> read-only search inputs in a public hackathon demo eligible for a cash prize; create a derived
+> SQLite database containing stripped text and token postings; process and mount that database on
+> Google Cloud/Cloud Run; and provide it to judges or the public? Please state the required
+> attribution, modification notice, ShareAlike treatment, redistribution limits, and whether your
+> permission covers each named upstream digitization.

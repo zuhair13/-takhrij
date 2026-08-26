@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import base64
 import json
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
+from dataclasses import replace
 from pathlib import Path
 
 from takhrij.config import Settings
@@ -66,6 +69,29 @@ class WebTests(unittest.TestCase):
         (runtime_root / "static").mkdir()
 
         self.assertEqual(_select_asset_root(source_root, runtime_root), runtime_root)
+
+    def test_production_rejects_fixture_content_even_if_release_is_relabelled(self):
+        with closing(sqlite3.connect(self.settings.corpus_db_path)) as connection, connection:
+            connection.execute(
+                "UPDATE corpus_metadata SET value = ? WHERE key = 'release'",
+                ("approved-looking-release",),
+            )
+            connection.execute(
+                "UPDATE documents SET corpus_release = ?",
+                ("approved-looking-release",),
+            )
+        production = replace(
+            self.settings,
+            app_env="production",
+            project_id="fixture-project",
+            corpus_release="approved-looking-release",
+        )
+        with self.assertRaisesRegex(ValueError, "approved_corpus"):
+            create_app(
+                settings=production,
+                store=self.store,
+                publisher=self.publisher,
+            )
 
     def test_inline_failure_releases_demo_capacity(self):
         def failing_runner(*_args, **_kwargs):

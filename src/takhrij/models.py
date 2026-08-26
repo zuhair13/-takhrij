@@ -55,8 +55,17 @@ class Claim:
 class Provenance:
     author_death_year_ah: int | None = None
     composition_date_ah: int | None = None
+    metadata_source_uri: str | None = None
+    author_date_source_uri: str | None = None
+    composition_date_source_uri: str | None = None
+    edition_citation: str | None = None
     edition_date: str | None = None
+    edition_source_uri: str | None = None
+    witness_description: str | None = None
     witness_date: str | None = None
+    witness_source_uri: str | None = None
+    quality_status: str | None = None
+    quality_notes: str | None = None
 
     @property
     def comparison_year_ah(self) -> int | None:
@@ -80,6 +89,15 @@ class Document:
     source_uri: str
     corpus_release: str
     provenance: Provenance
+    work_id: str = ""
+    language: str = "ara"
+    source_format: str = ""
+    parser_version: str = ""
+    source_sha256: str = ""
+    raw_text_sha256: str = ""
+    license_id: str = ""
+    license_uri: str = ""
+    selection_reason: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +125,15 @@ class RetrievalHit:
     match: str
     suffix: str
     provenance: Provenance
+    work_id: str = ""
+    language: str = "ara"
+    source_format: str = ""
+    parser_version: str = ""
+    source_sha256: str = ""
+    raw_text_sha256: str = ""
+    license_id: str = ""
+    license_uri: str = ""
+    selection_reason: str = ""
 
     @property
     def key(self) -> str:

@@ -81,6 +81,10 @@ def create_app(
     metadata = index.metadata()
     if metadata.get("release") != settings.corpus_release:
         raise ValueError("CORPUS_RELEASE does not match the baked SQLite index")
+    if settings.production and metadata.get("content_kind") != "approved_corpus":
+        raise ValueError("production requires an approved_corpus SQLite index")
+    if settings.production and metadata.get("approval_status") != "written_permission_granted":
+        raise ValueError("production corpus is missing a written-permission approval record")
     if not index.declared_books_exist(settings.corpus_book_ids):
         raise ValueError("CORPUS_BOOK_IDS does not match the baked SQLite index")
 

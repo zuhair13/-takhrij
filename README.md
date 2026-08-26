@@ -9,10 +9,11 @@ It searches exact normalized tokens, classifies their contexts, requires a Devil
 to audit the search trace, optionally searches missed variants, and releases a dossier only
 after a deterministic Issuance Gate verifies every quote, source, offset, and date field.
 
-This repository implements Revision 4.1. It intentionally does not contain a production
-OpenITI corpus. The included `data/takhrij.db` is built from two clearly labelled synthetic
-sentences so the index, verdict reversal, and Gate can be tested without redistributing
-licensed corpus data or pretending the fixtures are historical evidence.
+This repository implements Revision 4.1. It intentionally contains neither an OpenITI corpus nor
+a derived corpus database. Repository-authored synthetic texts under `tests/fixtures` exercise
+plain-text and OpenITI-shaped ingestion, exact retrieval, verdict reversal, and the Gate without
+presenting fixtures as historical evidence. Fixture databases are built in temporary or ignored
+paths and are never shipped.
 
 ## Current status
 
@@ -23,14 +24,19 @@ licensed corpus data or pretending the fixtures are historical evidence.
 | ADK 2.x dynamic workflow, three model roles, deterministic tool registry | Implemented and executed end-to-end with deterministic model doubles |
 | Bilingual web UI and four routes | Implemented and covered by HTTP tests |
 | Container, Cloud Build, IAM and Pub/Sub setup scripts | Prepared, not executed against a Google Cloud account |
-| Production OpenITI release and book list | Deliberately blocked pending licence resolution and selection |
+| Source-agnostic manifest, ingestion, deterministic index build | Implemented and tested with synthetic fixtures only |
+| Production OpenITI release and book list | Deliberately blocked pending written permission and post-permission verification |
 | Live Gemini/Firestore/Pub/Sub integration | Deliberately blocked pending cloud credentials and project setup |
 
-Verification snapshot (26 Aug 2026): 42 tests pass, including an actual ADK `Runner` execution
-with all six registered `FunctionTool` objects observed in the run; branch coverage meets the
-configured 85% threshold. Ruff, Python compilation, shell syntax, JavaScript syntax, Cloud Build
-YAML parsing, and the runtime-provider scan are clean. A container build remains unexecuted in
-this environment because no Docker-compatible engine is installed.
+Verification snapshot (26 Aug 2026): 75 tests pass, including an actual ADK `Runner` execution
+with all six registered `FunctionTool` objects observed in the run; branch coverage is 87% against
+the configured 85% threshold. Ruff, Python compilation, Cloud Build YAML parsing, the corpus-
+boundary scan, and the runtime-provider scan are clean. Bash, Node.js, and a Docker-compatible
+engine are unavailable in this environment, so shell syntax, JavaScript syntax, and a container
+build were not re-executed here.
+
+The three-document synthetic build is 40,960 bytes and took 0.034 seconds in a repeated local
+measurement. That number validates the workflow only; it is not a production-corpus size estimate.
 
 ## Architecture
 
@@ -93,15 +99,19 @@ Arabic or whether a later transmission normalized it.
 
 ## Retrieval and offsets
 
-`documents` holds raw texts and provenance. `postings` holds normalized single-token forms and
-raw Unicode code-point offsets. The browser receives already separated `prefix`, `match`, and
-`suffix` strings; it never reinterprets Python offsets as JavaScript UTF-16 offsets. The Gate
-compares the selected span as exact UTF-8 bytes and resolves the document again from SQLite.
+`documents` holds the exact post-markup raw text, source and raw-text hashes, parser version,
+licence, and provenance. `postings` holds normalized single-token forms and Unicode code-point
+offsets into that stored raw text. OpenITI-shaped ingestion removes only declared structural
+controls and never normalizes Arabic glyphs. The browser receives already separated `prefix`,
+`match`, and `suffix` strings; it never reinterprets Python offsets as JavaScript UTF-16 offsets.
+The Gate compares the selected span as exact UTF-8 bytes, re-hashes the raw document, and resolves
+all source and provenance fields again from SQLite.
 
 Normalization removes optional Arabic combining marks and tatweel. Orthographic alternatives are
 enumerated visibly: final `ى`/`ي`, plus the first lexical alef seat when present. The alef of the
 definite article is never mutated, so a form such as `بالتخريج` cannot produce the false spelling
-`بألتخريج`. `ة` and `ه` are never merged.
+`بألتخريج`. Suffix alefs in `اً`, `ات`, `نا`, and `ان` never receive hamza seats; final
+pronominal `ي` never becomes `ى`; and `ة` and `ه` are never merged.
 
 No vector index is used. Attestation is an existence-of-a-token question, not semantic
 similarity. Similarity search would add silent false positives without answering the contract.
@@ -121,6 +131,9 @@ similarity. Similarity search would add silent false positives without answering
   the verdict becomes `INCONCLUSIVE`.
 - A non-`uncertain` model label below the deterministic 0.80 confidence floor is converted to
   `uncertain`; low-confidence `target_use` can never break the claim.
+- Approved source roots and derived databases must remain outside the repository. Git, Python
+  package, Docker, and workspace scans reject corpus-shaped files and SQLite artifacts;
+  production startup rejects fixture databases.
 
 ## Local deterministic verification
 
@@ -129,8 +142,9 @@ Python 3.12 is required. Install the pinned runtime before running the complete 
 ```bash
 python -m pip install -e .
 PYTHONPATH=src python -m takhrij.index_builder \
-  config/corpus_manifest.fixture.json data/takhrij.db
+  config/corpus_manifest.fixture.json build/fixture/takhrij.db
 PYTHONPATH=src python -m unittest discover -s tests -v
+python scripts/check_corpus_boundary.py
 PYTHONPATH=src python scripts/run_fixture_demo.py
 ```
 
@@ -152,40 +166,51 @@ py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -e .
 $env:APP_ENV = "development"
-$env:CORPUS_DB_PATH = "data/takhrij.db"
+$env:CORPUS_DB_PATH = "build/fixture/takhrij.db"
 $env:CORPUS_RELEASE = "FIXTURE-ONLY"
-$env:CORPUS_BOOK_IDS = "fixture-early,fixture-late"
+$env:CORPUS_BOOK_IDS = "fixture-early,fixture-late,fixture-markup"
 $env:PUBSUB_AUDIENCE = "http://localhost:8080/worker"
 $env:PUBSUB_SERVICE_ACCOUNT = "local-test@example.invalid"
 python -m flask --app "takhrij.web:create_app()" run --port 8080
 ```
 
-The fixture web app queues jobs but does not call the cloud model unless a worker is invoked
-with a valid configured identity. The synthetic reversal script is the offline smoke test.
+Build the ignored fixture database with the command in the previous section before starting the
+web app. The fixture web app queues jobs but does not call the cloud model unless a worker is
+invoked with a valid configured identity. The synthetic reversal script builds its own temporary
+database and is the offline smoke test.
 
-## Production corpus build
+## Approved corpus swap (currently blocked)
 
-1. Resolve the exact release's permitted use and redistribution terms.
-2. Copy `config/corpus_manifest.example.json` to `config/corpus_manifest.json`.
-3. Select a small, documented book list and enter AH metadata only where sourced.
-4. Place source files outside version control unless permission clearly permits redistribution.
-5. Build and inspect the immutable database:
+Do not fetch OpenITI files or metadata merely to fill the example. First satisfy
+[`docs/licensing-checklist.md`](docs/licensing-checklist.md) and obtain maintainer approval for the
+exact release, files, rights, and distribution plan. Then:
+
+1. Copy `config/corpus_manifest.approved.example.json` to the ignored
+   `config/corpus_manifest.approved.json` and replace every placeholder with verified values.
+2. Set `approval.status` to `written_permission_granted` and reference the written permission
+   record stored outside Git.
+3. Put the approved, hash-pinned inputs in an external directory and set
+   `TAKHRIJ_APPROVED_CORPUS_ROOT` to that directory.
+4. Build the database to an external path with the explicit approval flag:
 
 ```bash
 PYTHONPATH=src python -m takhrij.index_builder \
-  config/corpus_manifest.json data/takhrij.db
-sqlite3 data/takhrij.db "select * from corpus_metadata;"
+  --allow-approved-corpus config/corpus_manifest.approved.json /external/corpus/takhrij.db
+sqlite3 /external/corpus/takhrij.db "select * from corpus_metadata;"
 ```
 
-The manifest release and book IDs must exactly match the production environment or the service
-refuses to start.
+The builder refuses approved content without all three controls: the explicit flag, the exact
+written-permission status, and source/output paths outside the repository. The manifest release
+and book IDs must exactly match the production environment or the service refuses to start.
+Production additionally refuses a database labelled `synthetic_fixture`.
 
 ## Cloud deployment order
 
 1. Run `deploy/bootstrap.sh PROJECT_ID REGION` from Cloud Shell. It enables APIs, creates
    dedicated runtime, push, and build service accounts, creates Firestore if needed, deploys the
    hello container, and refuses to finish until the URL returns `hello`.
-2. Resolve and build the production corpus database.
+2. Resolve permission, build the production corpus database outside the repository, and configure
+   a read-only `/corpus/takhrij.db` runtime mount. The image deliberately contains no database.
 3. Set the non-placeholder Cloud Build substitutions. The audience is the stable Cloud Run URL
    plus `/worker`.
 4. Submit `cloudbuild.yaml` once with the dedicated `takhrij-build` service account, then connect
@@ -197,9 +222,10 @@ refuses to start.
 6. Replay one Pub/Sub message deliberately and confirm a single final dossier plus multiple
    `attempt_id` log entries.
 
-`cloudbuild.yaml` pins `gemini-3.5-flash`, sets the 60-minute Cloud Run request timeout, and
-uses one Gunicorn process with threaded request handling. Cloud Run concurrency is four, while
-the Firestore quota transaction permits only one active public research job.
+Do not run this sequence until the licence gate and external runtime mount are resolved.
+`cloudbuild.yaml` pins `gemini-3.5-flash`, sets the 60-minute Cloud Run request timeout, and uses
+one Gunicorn process with threaded request handling. Cloud Run concurrency is four, while the
+Firestore quota transaction permits only one active public research job.
 
 The deployment variable is `GOOGLE_GENAI_USE_ENTERPRISE=True`. In ADK 2.7.1 this is the current
 name of the Google Cloud/Vertex path; Google documents it as equivalent to the earlier
@@ -211,6 +237,8 @@ service-account key file is shipped.
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 python -m compileall -q src scripts tests
+ruff check .
+python scripts/check_corpus_boundary.py
 python scripts/check_runtime_providers.py
 ```
 
@@ -228,11 +256,13 @@ so it does not match its own source.
 
 ## Licensing boundary
 
-The application code is Apache-2.0. Corpus files are separate inputs and are not relicensed by
-this repository. OpenITI's own documentation states that its releases use CC BY-NC-SA 4.0; the
-specific 2025.1.9 release is described in the linked record. Cash-prize and submission-licence
-compatibility must be confirmed before production indexing. See
-[`docs/licensing-checklist.md`](docs/licensing-checklist.md).
+The application code is Apache-2.0. Corpus files and derived data are separate inputs and are not
+relicensed by this repository. OpenITI's documentation states that releases use CC BY-NC-SA 4.0,
+but cash-prize use, the hackathon submission licence, upstream digitization rights, derived-
+database treatment, and the intended access model remain unresolved. Written permission is
+required before any OpenITI content or metadata is downloaded or indexed. See the
+[`licensing gate`](docs/licensing-checklist.md) and the catalogue-only
+[`candidate list`](docs/openiti-candidate-catalogue.md).
 
 ## Current authoritative references (verified 26 Aug 2026)
 
@@ -245,6 +275,8 @@ compatibility must be confirmed before production indexing. See
 - [Cloud Run service identity](https://docs.cloud.google.com/run/docs/authenticating/service-to-service)
 - [OpenITI documentation and licence](https://openiti.org/documentation/)
 - [OpenITI release 2025.1.9](https://zenodo.org/records/17767721)
+- [OpenITI primary-only release 2025.1.9](https://zenodo.org/records/18613982)
+- [CC BY-NC-SA 4.0 legal code](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en)
 
 All application code in this repository is new for this build. The synthetic fixture corpus is
 new test material and is explicitly non-evidentiary.

@@ -1,6 +1,8 @@
 # Four-minute demo runbook
 
-Use a real, preflighted corpus case. The synthetic fixture is only for engineering rehearsal.
+Use a real, preflighted corpus case only after the written-permission gate is cleared. Until then,
+the synthetic fixture is only for engineering rehearsal and must never be shown as historical
+evidence. The catalogue-only candidates are not claims and must not be used to imply a verdict.
 
 | Time | Screen | Line |
 |---:|---|---|
