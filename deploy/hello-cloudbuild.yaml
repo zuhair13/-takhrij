@@ -1,0 +1,31 @@
+steps:
+  - id: build-hello
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=deploy/hello/Dockerfile
+      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:hello
+      - .
+  - id: push-hello
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:hello
+  - id: deploy-hello
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:hello
+      - --region=${_REGION}
+      - --service-account=${_RUNTIME_SERVICE_ACCOUNT}
+      - --allow-unauthenticated
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: takhrij
+  _SERVICE: takhrij
+  _RUNTIME_SERVICE_ACCOUNT: replace-before-submit
+options:
+  logging: CLOUD_LOGGING_ONLY

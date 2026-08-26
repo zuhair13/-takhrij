@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.coverage
+.env
+.venv/
+htmlcov/
+dist/
+build/
+*.egg-info/
+data/*.db-shm
+data/*.db-wal
+config/corpus_manifest.json
+config/*.secret.json

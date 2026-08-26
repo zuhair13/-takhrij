@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TAKHRIJ · تخريج</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">CORPUS-BOUNDED EVIDENCE · دليل مقيّد بالمدوّنة</p>
+        <h1>TAKHRIJ <span>تخريج</span></h1>
+        <p class="lead">
+          Tests one falsifiable claim and then audits its own search.
+          <bdi dir="rtl">يختبر ادعاءً قابلاً للتفنيد، ثم يدقّق بحثه بنفسه.</bdi>
+        </p>
+      </header>
+
+      <section class="card" aria-labelledby="claim-heading">
+        <h2 id="claim-heading">New claim <bdi dir="rtl">· ادعاء جديد</bdi></h2>
+        <form id="claim-form">
+          <label>
+            Arabic form <bdi dir="rtl">· اللفظة العربية</bdi>
+            <input id="form" name="form" lang="ar" dir="rtl" required autocomplete="off" placeholder="مثال">
+          </label>
+          <label>
+            Intended sense <bdi dir="rtl">· المعنى المقصود</bdi>
+            <textarea id="target_sense" name="target_sense" lang="ar" dir="rtl" required rows="3" placeholder="اشرح المعنى المراد اختباره باختصار"></textarea>
+          </label>
+          <label>
+            Cutoff year (AH) <bdi dir="rtl">· السنة الحدّية (هـ)</bdi>
+            <input id="cutoff_year_ah" name="cutoff_year_ah" type="number" min="1" max="1600" required inputmode="numeric" placeholder="500">
+          </label>
+          <button type="submit">Run adversarial search <bdi dir="rtl">· ابدأ البحث المضاد</bdi></button>
+        </form>
+        <p class="boundary">
+          Release: <code>{{ release }}</code> · Books: {{ books }} · Hard match limit: {{ max_matches }}
+        </p>
+      </section>
+
+      <section id="status-card" class="card hidden" aria-live="polite">
+        <h2>Status <bdi dir="rtl">· الحالة</bdi></h2>
+        <p id="status-line"></p>
+        <div id="result"></div>
+      </section>
+
+      <aside>
+        <strong>Boundary statement <bdi dir="rtl">· بيان الحدود</bdi></strong>
+        <p>
+          No match in this release is not proof of absence from history.
+          <bdi dir="rtl">عدم العثور ضمن هذا الإصدار ليس دليلًا على الغياب من التاريخ.</bdi>
+        </p>
+      </aside>
+    </main>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </body>
+</html>

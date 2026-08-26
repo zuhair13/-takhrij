@@ -1,0 +1,31 @@
+{
+  "release": "FIXTURE-ONLY",
+  "license": "CC0-1.0",
+  "attribution": "Synthetic test sentences authored for TAKHRIJ; not historical evidence.",
+  "documents": [
+    {
+      "doc_id": "fixture-early",
+      "title": "النص التجريبي المبكر",
+      "author": "Synthetic Fixture",
+      "path": "../tests/fixtures/corpus/early.txt",
+      "source_uri": "fixture://early",
+      "calendar": "AH",
+      "author_death_year_ah": 370,
+      "composition_date_ah": 350,
+      "edition_date": "synthetic",
+      "witness_date": null
+    },
+    {
+      "doc_id": "fixture-late",
+      "title": "النص التجريبي المتأخر",
+      "author": "Synthetic Fixture",
+      "path": "../tests/fixtures/corpus/late.txt",
+      "source_uri": "fixture://late",
+      "calendar": "AH",
+      "author_death_year_ah": 680,
+      "composition_date_ah": 650,
+      "edition_date": "synthetic",
+      "witness_date": null
+    }
+  ]
+}

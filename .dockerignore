@@ -1,0 +1,11 @@
+.git
+.venv
+__pycache__
+*.pyc
+.coverage
+htmlcov
+tests
+upload
+dist
+build
+*.egg-info

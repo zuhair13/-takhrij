@@ -1,0 +1,59 @@
+steps:
+  - id: test
+    name: python:3.12.13-slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        python -m pip install --no-cache-dir .
+        PYTHONPATH=src python -m unittest discover -s tests -v
+        python -m compileall -q src scripts tests
+        python scripts/check_runtime_providers.py
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
+      - --region=${_REGION}
+      - --platform=managed
+      - --service-account=${_RUNTIME_SERVICE_ACCOUNT}
+      - --allow-unauthenticated
+      - --timeout=3600
+      - --concurrency=4
+      - --max-instances=2
+      - --cpu=1
+      - --memory=1Gi
+      - --set-env-vars=^~^APP_ENV=production~GOOGLE_CLOUD_PROJECT=${PROJECT_ID}~GOOGLE_CLOUD_LOCATION=global~GOOGLE_GENAI_USE_ENTERPRISE=True~GEMINI_MODEL_ID=gemini-3.5-flash~FIRESTORE_COLLECTION=claims~PUBSUB_TOPIC=takhrij-claims~PUBSUB_AUDIENCE=${_PUBSUB_AUDIENCE}~PUBSUB_SERVICE_ACCOUNT=${_PUBSUB_SERVICE_ACCOUNT}~CORPUS_DB_PATH=/app/data/takhrij.db~CORPUS_RELEASE=${_CORPUS_RELEASE}~CORPUS_BOOK_IDS=${_CORPUS_BOOK_IDS}~LEASE_SECONDS=900~MAX_MATCHES=200~MAX_VARIANTS=64~MAX_ACTIVE_JOBS=1~MAX_JOBS_PER_DAY=20~MAX_DELIVERY_ATTEMPTS=5
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: takhrij
+  _SERVICE: takhrij
+  _RUNTIME_SERVICE_ACCOUNT: replace-before-trigger
+  _PUBSUB_SERVICE_ACCOUNT: replace-before-trigger
+  _PUBSUB_AUDIENCE: replace-before-trigger
+  _CORPUS_RELEASE: replace-before-trigger
+  _CORPUS_BOOK_IDS: replace-before-trigger
+
+options:
+  logging: CLOUD_LOGGING_ONLY
