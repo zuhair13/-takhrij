@@ -27,6 +27,7 @@ class Settings:
     max_jobs_per_day: int = 20
     max_delivery_attempts: int = 5
     local_inline_worker: bool = False
+    redact_corpus_text: bool = False
 
     @property
     def production(self) -> bool:
@@ -90,4 +91,5 @@ def load_settings() -> Settings:
         max_jobs_per_day=int(os.getenv("MAX_JOBS_PER_DAY", "20")),
         max_delivery_attempts=int(os.getenv("MAX_DELIVERY_ATTEMPTS", "5")),
         local_inline_worker=_as_bool(os.getenv("LOCAL_INLINE_WORKER", "false")),
+        redact_corpus_text=_as_bool(os.getenv("REDACT_CORPUS_TEXT", "false")),
     )

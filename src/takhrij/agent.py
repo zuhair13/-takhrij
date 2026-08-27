@@ -67,7 +67,15 @@ class AssessmentInput(StrictModel):
 
 class MatchDecision(StrictModel):
     hit_key: str
-    classification: Literal["target_use", "homograph", "quotation", "uncertain"]
+    classification: Literal["target_use", "homograph", "uncertain"]
+    evidence_role: Literal[
+        "independent_authorial_use",
+        "formulaic_allusion",
+        "direct_quotation",
+        "attributed_quotation",
+        "metalinguistic_mention",
+        "uncertain",
+    ]
     reason: str = Field(max_length=700)
     confidence: float = Field(ge=0.0, le=1.0)
 
@@ -310,13 +318,22 @@ def build_workflow(
         mode="single_turn",
         generate_content_config=generation,
         instruction=(
-            "Classify every supplied hit exactly once. target_use means the "
-            "highlighted form is used in the stated target sense. homograph means "
-            "the same string is a different lexeme or sense. quotation means this "
-            "passage attributes or quotes the wording from an earlier or external "
-            "source. Use uncertain whenever context is insufficient. Never claim "
-            "that a string exists outside the supplied hits. "
-            "Keep reasons tied to visible context and preserve each hit_key exactly."
+            "Classify every supplied hit exactly once on two independent axes. "
+            "For classification, target_use means the highlighted form has the stated "
+            "sense; homograph means a different lexeme or sense; uncertain means the "
+            "visible context does not settle that semantic question. For evidence_role, "
+            "independent_authorial_use means the source author uses the lexeme in their "
+            "own assertion or narration. metalinguistic_mention means the form is discussed "
+            "as a word or expression. direct_quotation means identifiable fixed-source "
+            "wording is reproduced, including scriptural, poetic, or documentary wording. "
+            "attributed_quotation means wording or reported speech belongs to another voice "
+            "but is not an identifiable fixed-source quotation. formulaic_allusion means "
+            "the author echoes a formula or source without directly quoting it. Use uncertain "
+            "whenever the evidence role is not visible. When categories appear to overlap, "
+            "prefer metalinguistic_mention, then direct_quotation, then attributed_quotation, "
+            "then formulaic_allusion, then independent_authorial_use. Never claim that a "
+            "string exists outside the supplied hits. Keep reasons tied to visible context "
+            "and preserve each hit_key exactly."
         ),
     )
     devils_advocate = LlmAgent(
@@ -493,6 +510,7 @@ def build_workflow(
                                 for field in ("doc_id", "raw_start", "raw_end")
                             ),
                             "classification": item["classification"],
+                            "evidence_role": item["evidence_role"],
                             "reason": item["reason"],
                             "confidence": item["confidence"],
                         }
@@ -520,7 +538,11 @@ def build_workflow(
             "searched_variants": [item["surface_form"] for item in trace["variants"]],
             "provisional_verdict": provisional,
             "classification_notes": [
-                f"{item['classification']}: {item['reason']}" for item in classified
+                (
+                    f"semantic={item['classification']}; "
+                    f"evidence_role={item['evidence_role']}: {item['reason']}"
+                )
+                for item in classified
             ],
             "corpus_time_summary": [
                 f"{item['name']}: total_hits={item['total_hits']}, truncated={item['truncated']}"

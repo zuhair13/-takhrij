@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import asdict, is_dataclass
 from enum import Enum
 from typing import Any
@@ -9,6 +10,7 @@ from typing import Any
 from takhrij.models import (
     Claim,
     ClassifiedMatch,
+    EvidenceRole,
     MatchClass,
     Provenance,
     RetrievalHit,
@@ -111,6 +113,42 @@ def classified_from_dict(data: dict[str, Any]) -> ClassifiedMatch:
     return ClassifiedMatch(
         hit=hit_from_dict(data["hit"]),
         classification=MatchClass(data["classification"]),
+        evidence_role=EvidenceRole(data["evidence_role"]),
         reason=str(data["reason"]),
         confidence=float(data["confidence"]),
     )
+
+
+def redact_dossier_for_display(dossier: dict[str, Any]) -> dict[str, Any]:
+    """Remove licensed corpus text and free-form model excerpts after Gate issuance."""
+    if dossier.get("gate_passed") is not True:
+        raise ValueError("only a Gate-issued dossier may be redacted for display")
+    visible = deepcopy(dossier)
+    matches = visible.get("matches", [])
+    if isinstance(matches, list):
+        for item in matches:
+            if not isinstance(item, dict):
+                continue
+            hit = item.get("hit")
+            if isinstance(hit, dict):
+                for field in ("raw_form", "prefix", "match", "suffix"):
+                    hit.pop(field, None)
+            item.pop("reason", None)
+    audit = visible.get("audit")
+    if isinstance(audit, dict):
+        findings = audit.get("findings", [])
+        if isinstance(findings, list):
+            for finding in findings:
+                if isinstance(finding, dict):
+                    finding.pop("rationale", None)
+    limitations = visible.setdefault("limitations", [])
+    if isinstance(limitations, list):
+        limitations.append(
+            "Corpus text and free-form assessment rationales are redacted in local-only mode."
+        )
+    visible["display_policy"] = {
+        "corpus_text": "redacted",
+        "assessment_rationales": "redacted",
+        "delivery_scope": "local_only",
+    }
+    return visible

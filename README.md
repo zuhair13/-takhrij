@@ -1,41 +1,70 @@
 # TAKHRIJ · تخريج
 
-TAKHRIJ tests one falsifiable, corpus-bounded historical-linguistics claim:
+> **A word found in a book is not necessarily a word used by its author.**
 
-> No target-use attestation of any enumerated variant of form X, in intended sense S,
-> occurs before cutoff Y AH within release R and book list B.
+TAKHRIJ is an attestation-intelligence layer for corpus search. Search engines retrieve matching
+strings; TAKHRIJ determines which matches count as historical evidence by separating two questions:
 
-It searches exact normalized tokens, classifies their contexts, requires a Devil's Advocate
-to audit the search trace, optionally searches missed variants, and releases a dossier only
-after a deterministic Issuance Gate verifies every quote, source, offset, and date field.
+1. Does the string carry the target sense?
+2. Is it independent authorial use, or only quotation, attribution, allusion, or mention?
+
+Its frozen, falsifiable claim is:
+
+> No **independent authorial target-use** attestation of any enumerated variant of form X,
+> in intended sense S, occurs before cutoff Y AH within release R and book list B.
+
+Only `target_use ∧ independent_authorial_use ∧ year < cutoff` can falsify that claim. An earlier
+Quranic quotation, cited speech, metalinguistic discussion, formulaic allusion, or homograph is a
+real string match but not independent lexical evidence. Unresolved semantics or evidence role
+forces `INCONCLUSIVE`; it can never be silently counted as absence.
+
+The system searches exact normalized tokens, classifies both axes with Gemini, requires a Devil's
+Advocate to audit the search trace, optionally searches missed variants, and releases a dossier
+only after a deterministic Issuance Gate verifies every quote, source, offset, date field, and the
+evidence-to-verdict derivation.
 
 This repository implements Revision 4.1. It intentionally contains no OpenITI corpus. The tracked
 `data/takhrij.db` is a byte-reproducible database built only from repository-authored synthetic
 texts under `tests/fixtures`; it preserves the frozen fixture-image deployment and is never
 historical evidence. Tests also rebuild databases in temporary paths.
 
+## Judge quick path
+
+1. Run `PYTHONPATH=src python scripts/run_fixture_demo.py`.
+2. Inspect `adjudication`: the synthetic control returns three raw matches, two before the cutoff,
+   and zero qualifying earlier independent uses.
+3. Run `PYTHONPATH=src python -m unittest tests.test_verdict_gate -v` to see direct quotation,
+   attributed quotation, metalinguistic mention, formulaic allusion, homograph, and uncertainty
+   tested against the same deterministic predicate.
+4. Open the web UI: each hit shows **meaning**, **evidence role**, and whether the claim contract
+   counts or excludes it.
+
+The fixture is intentionally synthetic. A real OpenITI run is local-only, redacted, and described
+in [`docs/local-openiti-runbook.md`](docs/local-openiti-runbook.md); the public image remains on
+the fixture until distribution permission covers the derived index.
+
 ## Current status
 
 | Layer | Status |
 |---|---|
-| SQLite index, offsets, retrieval, verdicts, Gate | Implemented and locally tested |
+| SQLite index, offsets, two-axis adjudication, verdicts, Gate | Implemented and locally tested |
 | Leases, duplicate delivery, stale-attempt CAS, terminal failure | Implemented and locally tested |
 | ADK 2.x dynamic workflow, three model roles, deterministic tool registry | Implemented and executed end-to-end with deterministic model doubles |
 | Bilingual web UI and four routes | Implemented and covered by HTTP tests |
 | Container, Cloud Build, IAM and Pub/Sub setup scripts | Prepared, not executed against a Google Cloud account |
-| Source-agnostic manifest, ingestion, deterministic index build | Implemented and tested with synthetic fixtures only |
-| Production OpenITI release and book list | Deliberately blocked pending written permission and post-permission verification |
+| Source-agnostic manifest, ingestion, deterministic index build | Implemented with fixture, local-only, and distribution-approved scopes |
+| Local OpenITI five-book manifest | Pinned to release 2025.1.9; local non-commercial run path implemented |
+| Public OpenITI image | Blocked until distribution permission covers the derived index and service |
 | Live Gemini/Firestore/Pub/Sub integration | Deliberately blocked pending cloud credentials and project setup |
 
-Verification snapshot (26 Aug 2026): 80 tests pass, including an actual ADK `Runner` execution
-with all six registered `FunctionTool` objects observed in the run; branch coverage is 86% against
-the configured 85% threshold. Ruff, Python compilation, Cloud Build YAML parsing, the corpus-
-boundary scan, and the runtime-provider scan are clean. Bash, Node.js, and a Docker-compatible
-engine are unavailable in this environment, so shell syntax, JavaScript syntax, and a container
-build were not re-executed here.
+Verification snapshot (27 Aug 2026): 92 tests pass with 86% branch coverage, including an actual
+ADK `Runner` execution with all six registered `FunctionTool` objects observed in the run.
+Ruff, Python compilation, Node JavaScript syntax, Bash syntax, Cloud Build YAML parsing, the
+corpus-boundary scan, and the runtime-provider scan are clean. A Docker-compatible engine is not
+available in this environment, so a real container build remains unexecuted.
 
-The three-document synthetic build is 40,960 bytes and took 0.034 seconds in a repeated local
-measurement. That number validates the workflow only; it is not a production-corpus size estimate.
+The three-document synthetic build is byte-reproducible. Its size and build time validate the
+workflow only; they are not production-corpus estimates.
 
 ## Architecture
 
@@ -62,9 +91,13 @@ whether a string exists.
 | Gemini judges | Code establishes |
 |---|---|
 | Same-lexeme morphological forms | Non-destructive normalization |
-| `target_use` / `homograph` / `quotation` / `uncertain` | Exact postings lookup |
+| Semantic axis: `target_use` / `homograph` / `uncertain` | Exact postings lookup |
+| Evidence-role axis: independent use / quotation / attribution / mention / allusion / uncertain | The one predicate that can affect the verdict |
 | Weak trace or missing variant | Raw quote extraction and offset verification |
 | Contextual reasons | Verdict derivation and dossier assembly |
+
+The two axes are deliberately orthogonal. A quoted word may still have the target sense, but it
+does not become evidence that the containing book's author independently used it.
 
 ## Claim input correction
 
@@ -93,8 +126,10 @@ The comparison year is deterministic:
 4. A potentially relevant match without a usable AH comparison year makes the verdict
    `INCONCLUSIVE`.
 
-The dossier states that attribution to an author/date does not prove when a spelling entered
-Arabic or whether a later transmission normalized it.
+The date belongs to the containing work, not automatically to quoted speech. A target-sense hit
+with an unresolved evidence role therefore blocks a negative verdict. The dossier also states
+that attribution to an author/date does not prove when a spelling entered Arabic or whether a
+later transmission normalized it.
 
 ## Retrieval and offsets
 
@@ -128,14 +163,17 @@ similarity. Similarity search would add silent false positives without answering
 - One active job and 20 created jobs per UTC day are the default public budget guard.
 - More than 200 matches is not sampled into a confident answer; coverage becomes incomplete and
   the verdict becomes `INCONCLUSIVE`.
-- A non-`uncertain` model label below the deterministic 0.80 confidence floor is converted to
-  `uncertain`; low-confidence `target_use` can never break the claim.
+- A non-`uncertain` semantic or evidence-role decision below the deterministic 0.80 confidence
+  floor converts both axes to `uncertain`; low-confidence judgement can never break the claim.
 - Approved source roots and derived databases stay outside the repository. The only tracked
   database is the byte-reproducible synthetic fixture. Git, Python-package, Docker-context, and
   workspace scans reject other corpus artifacts; production startup rejects fixture databases.
 - The default Docker build bakes the fixture database at `/app/data/takhrij.db`. A real database
   can enter an isolated image context only through the written-permission and explicit-opt-in
   approved-image builder. The database is mode `0444` in the image; no runtime mount is used.
+- A licence-reviewed OpenITI database can be built only with `--allow-local-only-corpus`, outside
+  the repository. Its metadata says `delivery_scope=local_only`; startup requires server-side
+  redaction, and the image gate rejects it.
 
 ## Local deterministic verification
 
@@ -150,14 +188,18 @@ python scripts/check_corpus_boundary.py
 PYTHONPATH=src python scripts/run_fixture_demo.py
 ```
 
-Expected fixture reversal:
+Expected fixture adjudication:
 
 ```text
+3 raw matches
+2 raw matches before cutoff
+0 qualifying independent uses before cutoff
 NO_EARLIER_MATCH_IN_DECLARED_CORPUS
-→ EARLIER_MATCH_FOUND
 ```
 
-The output also says `SYNTHETIC FIXTURE — NOT HISTORICAL EVIDENCE`.
+The early hits are an explicit quotation and a metalinguistic mention. The one independent
+authorial use is after the cutoff. The output also says
+`SYNTHETIC FIXTURE — NOT HISTORICAL EVIDENCE`.
 
 ## Full local application
 
@@ -177,15 +219,38 @@ python -m flask --app "takhrij.web:create_app()" run --port 8080
 ```
 
 The fixture web app queues jobs but does not call the cloud model unless a worker is invoked with a
-valid configured identity. The synthetic reversal script builds its own temporary database and is
-the offline smoke test. `docker build -t takhrij:fixture .` preserves the existing fixture image;
+valid configured identity. The synthetic adjudication script builds its own temporary database and
+is the offline smoke test. `docker build -t takhrij:fixture .` preserves the existing fixture image;
 run it only with development settings because production startup rejects fixture content.
 
-## Approved corpus swap (currently blocked)
+## Local OpenITI demo without distribution
 
-Do not fetch OpenITI files or metadata merely to fill the example. First satisfy
-[`docs/licensing-checklist.md`](docs/licensing-checklist.md) and obtain maintainer approval for the
-exact release, files, rights, and distribution plan. Then:
+The pinned manifest selects five primary texts at 276, 414, 456, 505, and 598 AH across Shamela,
+JK, and Shia source families. It correctly uses
+`0505Ghazali.Munqidh.JK009330-ara1`; the former Shamela candidate was secondary.
+
+Set `TAKHRIJ_LOCAL_CORPUS_ROOT` to the external pinned release checkout, authenticate with Google
+Cloud ADC, and run:
+
+```bash
+PYTHONPATH=src python scripts/run_local_corpus_demo.py \
+  --claim-contract config/claims/TAKHRIJ-DIZA-01.json \
+  --project-id PROJECT_ID \
+  --acknowledge-local-only-licence
+```
+
+The script builds a temporary database outside the repository, forces the Google Cloud
+Vertex/enterprise path, derives the exact book IDs from that database, runs the ADK workflow once,
+and emits only a post-Gate redacted dossier. Do not announce a corpus result until that live run
+has actually completed; the manifest is a reproducible experiment definition, not a result.
+See [`docs/local-openiti-runbook.md`](docs/local-openiti-runbook.md).
+
+## Distribution-approved corpus image (currently blocked)
+
+Local non-commercial research use and public distribution are separate delivery scopes. The local
+workflow above does not authorize baking the index into a public image. First satisfy
+[`docs/licensing-checklist.md`](docs/licensing-checklist.md) and obtain permission covering the
+exact release, files, derived database, image, service access, and distribution plan. Then:
 
 1. Copy `config/corpus_manifest.approved.example.json` to the ignored
    `config/corpus_manifest.approved.json` and replace every placeholder with verified values.
@@ -256,7 +321,7 @@ so it does not match its own source.
 
 - Single Arabic tokens only; no phrase matching.
 - Corpus-bounded absence only; never historical absence.
-- Semantic class is a model judgement and can be wrong.
+- Semantic class and evidence role are model judgements and can be wrong.
 - The Gate guarantees exact quote/source/metadata linkage, not interpretive correctness.
 - The Devil's Advocate audits the trace, not unseen corpus contents.
 - No geographic inference, borrowing analysis, accounts, or cross-session learning.
@@ -265,11 +330,17 @@ so it does not match its own source.
 
 The application code is Apache-2.0. Corpus files and derived data are separate inputs and are not
 relicensed by this repository. OpenITI's documentation states that releases use CC BY-NC-SA 4.0,
-but cash-prize use, the hackathon submission licence, upstream digitization rights, derived-
-database treatment, and the intended access model remain unresolved. Written permission is
-required before any OpenITI content or metadata is downloaded or indexed. See the
-[`licensing gate`](docs/licensing-checklist.md) and the catalogue-only
-[`candidate list`](docs/openiti-candidate-catalogue.md).
+so the repository implements two different boundaries:
+
+- **Local non-commercial research:** the pinned source and derived index stay outside Git and
+  containers; the displayed dossier is redacted server-side.
+- **Public distribution/service:** still blocked until permission resolves the cash-prize context,
+  hackathon submission licence, upstream digitization rights, derived-database treatment, image
+  redistribution, and service access.
+
+See the [`licensing gate`](docs/licensing-checklist.md), local
+[`runbook`](docs/local-openiti-runbook.md), and pinned manifest. This is an engineering policy,
+not legal advice.
 
 ## Current authoritative references (verified 26 Aug 2026)
 

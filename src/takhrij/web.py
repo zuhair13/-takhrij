@@ -18,6 +18,7 @@ from takhrij.models import Claim
 from takhrij.normalization import validate_variants
 from takhrij.publisher import Publisher, PubSubPublisher, RecordingPublisher
 from takhrij.security import AuthenticationError, verify_pubsub_oidc
+from takhrij.serde import redact_dossier_for_display
 from takhrij.worker import BusyJob, ClaimWorker, TerminalJob, parse_push_envelope
 
 LOGGER = logging.getLogger(__name__)
@@ -81,10 +82,28 @@ def create_app(
     metadata = index.metadata()
     if metadata.get("release") != settings.corpus_release:
         raise ValueError("CORPUS_RELEASE does not match the baked SQLite index")
-    if settings.production and metadata.get("content_kind") != "approved_corpus":
+    content_kind = metadata.get("content_kind")
+    approval_status = metadata.get("approval_status")
+    delivery_scope = metadata.get("delivery_scope")
+    if content_kind == "synthetic_fixture":
+        expected_scope = "fixture_only"
+    elif content_kind == "approved_corpus" and approval_status == "local_only_licence_reviewed":
+        expected_scope = "local_only"
+    elif content_kind == "approved_corpus" and approval_status == "written_permission_granted":
+        expected_scope = "distribution_approved"
+    else:
+        raise ValueError("SQLite index has an unsupported content or approval state")
+    if delivery_scope != expected_scope:
+        raise ValueError("SQLite index delivery_scope is inconsistent with its approval state")
+    local_only_mode = approval_status == "local_only_licence_reviewed"
+    if local_only_mode and not settings.redact_corpus_text:
+        raise ValueError("local-only corpus mode requires REDACT_CORPUS_TEXT=true")
+    if settings.production and content_kind != "approved_corpus":
         raise ValueError("production requires an approved_corpus SQLite index")
-    if settings.production and metadata.get("approval_status") != "written_permission_granted":
+    if settings.production and approval_status != "written_permission_granted":
         raise ValueError("production corpus is missing a written-permission approval record")
+    if settings.production and delivery_scope != "distribution_approved":
+        raise ValueError("production corpus requires distribution_approved delivery scope")
     if not index.declared_books_exist(settings.corpus_book_ids):
         raise ValueError("CORPUS_BOOK_IDS does not match the baked SQLite index")
 
@@ -129,6 +148,7 @@ def create_app(
             release=settings.corpus_release,
             books=len(settings.corpus_book_ids),
             max_matches=settings.max_matches,
+            redacted=local_only_mode,
         )
 
     @app.post("/claims")
@@ -185,6 +205,8 @@ def create_app(
                 "progress",
             }
         }
+        if local_only_mode and isinstance(visible.get("dossier"), dict):
+            visible["dossier"] = redact_dossier_for_display(visible["dossier"])
         return jsonify(visible)
 
     @app.post("/worker")

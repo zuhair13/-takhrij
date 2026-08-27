@@ -5,6 +5,7 @@ These are specification closures and safety bounds, not new product features.
 | Decision | Reason | Visible effect |
 |---|---|---|
 | Require `target_sense` | `target_use` versus `homograph` is undefined without an intended sense | Third input field in UI/API |
+| Replace semantic `quotation` with an orthogonal evidence-role axis | A quotation can carry the target sense while still not being the containing author's independent use | Every hit shows meaning and role; only their explicit conjunction can qualify |
 | Prefer composition AH, else author death AH | Revision 4.1 names four dates but not the comparison field | Every match prints `date_basis` |
 | Prefix first result with `PROVISIONAL_` | The dossier cannot be issued before adversarial audit | Progress UI never presents first pass as final |
 | Store Unicode code-point offsets and compare UTF-8 bytes | Python and browser count Unicode differently | Server sends prefix/match/suffix separately |
@@ -21,11 +22,13 @@ These are specification closures and safety bounds, not new product features.
 | Bake the read-only SQLite database into the image | Revision 4.1 freezes corpus and runtime together | `/app/data/takhrij.db` is mode `0444`; no runtime corpus mount or new cloud service exists |
 | Isolate approved image contexts | Permission to use data must not imply permission to commit it | Real sources remain external; only the derived database enters a temporary opted-in Docker context |
 | Keep corpus approval machine-readable and fail-closed | A generic licence label does not resolve the hackathon's cash-prize and redistribution facts | Approved database and image builds each require written-permission status plus distinct explicit flags |
+| Separate local use from distribution | CC BY-NC-SA local research and redistribution create different engineering boundaries | Local index stays external and redacted; only written permission can produce a public image |
 
 ## Date caveat
 
 Even a documented composition or author date is not a direct date for the exact spelling in a
-later digital transmission. The dossier treats it as attributed provenance and states the limit.
+later digital transmission. It is also not the date of wording quoted from an earlier speaker or
+source. The dossier treats it as container provenance and states the limit.
 
 ## One-pass adversarial loop
 

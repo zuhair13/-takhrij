@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -10,6 +11,7 @@ from unittest.mock import patch
 
 from takhrij.index_builder import _enforce_approval_boundary, build_index
 from takhrij.manifest import (
+    LOCAL_ONLY_STATUS,
     ManifestError,
     load_manifest,
     resolve_document_path,
@@ -20,6 +22,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_MANIFEST = ROOT / "config" / "corpus_manifest.fixture.json"
 APPROVED_EXAMPLE = ROOT / "config" / "corpus_manifest.approved.example.json"
 SCHEMA_PATH = ROOT / "config" / "corpus_manifest.schema.json"
+LOCAL_OPENITI = ROOT / "config" / "corpus_manifest.local-openiti-2025.1.9.json"
+DIZA_CLAIM = ROOT / "config" / "claims" / "TAKHRIJ-DIZA-01.json"
 
 
 class ManifestTests(unittest.TestCase):
@@ -179,6 +183,74 @@ class ManifestTests(unittest.TestCase):
             path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
             with self.assertRaisesRegex(ManifestError, "real approval.reference"):
                 load_manifest(path)
+
+    def test_local_only_status_rejects_placeholder_reference(self):
+        data = json.loads(APPROVED_EXAMPLE.read_text(encoding="utf-8"))
+        data["approval"]["status"] = LOCAL_ONLY_STATUS
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid.json"
+            path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaisesRegex(ManifestError, "real approval.reference"):
+                load_manifest(path)
+
+    def test_local_openiti_manifest_is_pinned_and_straddles_cutoff(self):
+        manifest = load_manifest(LOCAL_OPENITI)
+        self.assertEqual(manifest.approval.status, LOCAL_ONLY_STATUS)
+        self.assertIn("cfc4157a3cf2054c0888f133970a4eaa3e22e58c", manifest.release_uri)
+        self.assertEqual(manifest.release_doi, "10.5281/zenodo.17767721")
+        self.assertEqual(len(manifest.documents), 5)
+        self.assertEqual(
+            [item.provenance.author_death_year_ah for item in manifest.documents],
+            [276, 414, 456, 505, 598],
+        )
+        ids = [item.doc_id for item in manifest.documents]
+        self.assertTrue(any(".Shamela" in item for item in ids))
+        self.assertTrue(any(".JK" in item for item in ids))
+        self.assertTrue(any(".Shia" in item for item in ids))
+        self.assertIn("0505Ghazali.Munqidh.JK009330-ara1", ids)
+        self.assertFalse(any("Munqidh.Shamela" in item for item in ids))
+
+    def test_diza_claim_contract_hash_and_corpus_binding_are_reproducible(self):
+        envelope = json.loads(DIZA_CLAIM.read_text(encoding="utf-8"))
+        canonical = json.dumps(
+            envelope["contract"],
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        self.assertEqual(
+            hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            envelope["contract_sha256"],
+        )
+        manifest = load_manifest(LOCAL_OPENITI)
+        self.assertEqual(envelope["contract"]["manifest_sha256"], manifest.canonical_sha256)
+        self.assertEqual(
+            envelope["contract"]["book_ids"],
+            [document.doc_id for document in manifest.documents],
+        )
+
+    def test_local_only_build_requires_its_flag_and_external_output(self):
+        manifest = load_manifest(LOCAL_OPENITI)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "local.db"
+            with self.assertRaisesRegex(PermissionError, "allow-local-only-corpus"):
+                _enforce_approval_boundary(manifest, LOCAL_OPENITI, output)
+            self.assertEqual(
+                _enforce_approval_boundary(
+                    manifest,
+                    LOCAL_OPENITI,
+                    output,
+                    allow_local_only_corpus=True,
+                ),
+                "local_only",
+            )
+        with self.assertRaisesRegex(PermissionError, "outside the repository"):
+            _enforce_approval_boundary(
+                manifest,
+                LOCAL_OPENITI,
+                ROOT / "data" / "forbidden-local.db",
+                allow_local_only_corpus=True,
+            )
 
     def test_approved_database_cannot_be_written_inside_repository(self):
         manifest = load_manifest(APPROVED_EXAMPLE)

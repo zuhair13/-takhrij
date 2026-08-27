@@ -13,7 +13,10 @@ MANIFEST_SCHEMA_VERSION = 1
 FIXTURE_KIND = "synthetic_fixture"
 APPROVED_KIND = "approved_corpus"
 SOURCE_FORMATS = frozenset(("plain_text", "openiti_mARkdown"))
-APPROVAL_STATUSES = frozenset(("written_permission_required", "written_permission_granted"))
+LOCAL_ONLY_STATUS = "local_only_licence_reviewed"
+APPROVAL_STATUSES = frozenset(
+    ("written_permission_required", LOCAL_ONLY_STATUS, "written_permission_granted")
+)
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 ROOT_FIELDS = frozenset(
     (
@@ -311,12 +314,11 @@ def load_manifest(path: Path) -> CorpusManifest:
             raise ManifestError(
                 f"approved_corpus approval.status must be one of {sorted(APPROVAL_STATUSES)}"
             )
-        if (
-            approval.status == "written_permission_granted"
-            and "REPLACE_WITH" in approval.reference.upper()
+        if approval.status in {LOCAL_ONLY_STATUS, "written_permission_granted"} and (
+            "REPLACE_WITH" in approval.reference.upper()
         ):
             raise ManifestError(
-                "written_permission_granted requires a real approval.reference"
+                f"{approval.status} requires a real approval.reference"
             )
         if source_root_env is None:
             raise ManifestError("approved_corpus manifests require source_root_env")
@@ -351,12 +353,12 @@ def resolve_source_root(manifest: CorpusManifest, manifest_path: Path) -> Path:
     configured = os.getenv(manifest.source_root_env, "").strip()
     if not configured:
         raise ManifestError(
-            f"{manifest.source_root_env} must name the approved external source root"
+            f"{manifest.source_root_env} must name the external corpus source root"
         )
     root = Path(configured).resolve()
     repository_root = manifest_path.resolve().parents[1]
     if root == repository_root or repository_root in root.parents:
-        raise ManifestError("approved corpus source root must be outside the repository")
+        raise ManifestError("external corpus source root must be outside the repository")
     if not root.is_dir():
         raise ManifestError(f"approved corpus source root does not exist: {root}")
     return root

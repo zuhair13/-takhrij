@@ -34,6 +34,11 @@ class CorpusIndex:
             ).fetchone()
         return row is not None
 
+    def document_ids(self) -> tuple[str, ...]:
+        with closing(self._connect()) as connection:
+            rows = connection.execute("SELECT doc_id FROM documents ORDER BY doc_id").fetchall()
+        return tuple(row["doc_id"] for row in rows)
+
     def get_document(self, doc_id: str) -> Document | None:
         with closing(self._connect()) as connection:
             row = connection.execute(

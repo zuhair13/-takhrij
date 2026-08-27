@@ -1,0 +1,28 @@
+{
+  "claim_id": "TAKHRIJ-DIZA-01",
+  "contract_version": 2,
+  "supersedes_conceptual_contract_sha256": "66830c9bac0f9be6978dedfbcda64914d75839db7eef9b1d558697fed206bb25",
+  "contract_sha256": "06f36ccf89aa4929323138964a6bd4ddb107baabcda3ba93cb3bc9e8e7f891e6",
+  "contract": {
+    "form": "ضيزى",
+    "target_sense": "استعمال وصفي في كلام المؤلف نفسه للحكم على قسمة أو حصة بأنها جائرة، لا مجرد نقل اللفظة القرآنية أو شرحها بوصفها لفظة",
+    "cutoff_year_ah": 500,
+    "corpus_release": "OpenITI-2025.1.9-cfc4157a",
+    "manifest_sha256": "286f291712ad7a5030f709102500e792b5baa46efd9860262bf1090f01b56da5",
+    "book_ids": [
+      "0276IbnQutaybaDinawari.AdabKatib.Shamela0026349-ara1",
+      "0414AbuHayyanTawhidi.AkhlaqWazirayn.Shamela0012541-ara1",
+      "0456IbnHazm.TawqHamama.Shamela0010518-ara1",
+      "0505Ghazali.Munqidh.JK009330-ara1",
+      "0598IbnIdrisHilli.MustatrafatSarair.Shia001352-ara1"
+    ],
+    "qualifying_predicate": "target_use AND independent_authorial_use AND comparison_year_ah < 500",
+    "excluded_evidence_roles": [
+      "direct_quotation",
+      "attributed_quotation",
+      "metalinguistic_mention",
+      "formulaic_allusion"
+    ],
+    "boundary": "A negative verdict means no qualifying earlier attestation in this exact pinned corpus, never absence from Arabic history."
+  }
+}

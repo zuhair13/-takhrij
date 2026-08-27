@@ -97,6 +97,7 @@ class ApprovedImageBuildTests(unittest.TestCase):
                         ("approved_corpus", "content_kind"),
                         ("written_permission_granted", "approval_status"),
                         ("fixture://written-permission-test", "approval_reference"),
+                        ("distribution_approved", "delivery_scope"),
                     ),
                 )
             with self.assertRaisesRegex(PermissionError, "explicit Docker build opt-in"):
@@ -105,6 +106,17 @@ class ApprovedImageBuildTests(unittest.TestCase):
                 approved_database, "written_permission_granted"
             )
             self.assertEqual(approved_metadata["content_kind"], "approved_corpus")
+
+            with closing(sqlite3.connect(approved_database)) as connection, connection:
+                connection.executemany(
+                    "UPDATE corpus_metadata SET value = ? WHERE key = ?",
+                    (
+                        ("local_only_licence_reviewed", "approval_status"),
+                        ("local_only", "delivery_scope"),
+                    ),
+                )
+            with self.assertRaisesRegex(PermissionError, "approval_status"):
+                verify_image_database(approved_database, "written_permission_granted")
 
 
 if __name__ == "__main__":

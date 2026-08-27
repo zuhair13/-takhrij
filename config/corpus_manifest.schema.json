@@ -41,7 +41,15 @@
       "additionalProperties": false,
       "required": ["status", "reference"],
       "properties": {
-        "status": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "written_permission_required",
+            "local_only_licence_reviewed",
+            "written_permission_granted"
+          ]
+        },
         "reference": { "type": "string", "minLength": 1 }
       }
     },

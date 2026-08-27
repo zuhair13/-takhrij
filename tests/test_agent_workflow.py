@@ -23,11 +23,17 @@ def fake_llm_agent(*, name, **_kwargs):
         if name == "morphologist":
             return {"forms": [], "rationale": "fixture"}
         if name == "assessor":
+            roles = {
+                "fixture-early": "direct_quotation",
+                "fixture-markup": "metalinguistic_mention",
+                "fixture-late": "independent_authorial_use",
+            }
             return {
                 "decisions": [
                     {
                         "hit_key": hit["hit_key"],
                         "classification": "target_use",
+                        "evidence_role": roles[hit["hit_key"].split(":", 1)[0]],
                         "reason": "synthetic fixture",
                         "confidence": 1.0,
                     }
@@ -58,7 +64,7 @@ class AgentWorkflowTests(unittest.TestCase):
         self.settings = Settings(
             corpus_db_path=db_path,
             corpus_release="FIXTURE-ONLY",
-            corpus_book_ids=("fixture-early", "fixture-late"),
+            corpus_book_ids=("fixture-early", "fixture-markup", "fixture-late"),
             pubsub_audience="http://local/worker",
             pubsub_service_account="local@example.invalid",
         )
@@ -68,7 +74,7 @@ class AgentWorkflowTests(unittest.TestCase):
             "target_sense": "دليل يُستند إليه في الاستدلال",
             "cutoff_year_ah": 500,
             "corpus_release": "FIXTURE-ONLY",
-            "book_ids": ["fixture-early", "fixture-late"],
+            "book_ids": ["fixture-early", "fixture-markup", "fixture-late"],
         }
 
     def tearDown(self):
@@ -100,7 +106,7 @@ class AgentWorkflowTests(unittest.TestCase):
             [408, 429, 500, 502, 503, 504],
         )
 
-    def test_actual_adk_runner_executes_reversal_and_gate(self):
+    def test_actual_adk_runner_adjudicates_string_matches_and_executes_gate(self):
         progress = []
         tool_calls = []
         original_run_async = FunctionTool.run_async
@@ -122,13 +128,20 @@ class AgentWorkflowTests(unittest.TestCase):
                 )
             )
         self.assertEqual(dossier["provisional_verdict"], "NO_EARLIER_MATCH_IN_DECLARED_CORPUS")
-        self.assertEqual(dossier["verdict"], "EARLIER_MATCH_FOUND")
+        self.assertEqual(dossier["verdict"], "NO_EARLIER_MATCH_IN_DECLARED_CORPUS")
         self.assertTrue(dossier["gate_passed"])
+        self.assertTrue(
+            all("evidence_role" in item for item in dossier["matches"])
+        )
         self.assertEqual([stage for stage, _ in progress], ["provisional", "devils_advocate"])
         self.assertEqual(
             [item["surface_form"] for item in dossier["variants"]],
             ["تخريج", "بالتخريج"],
         )
+        roles = {item["hit"]["doc_id"]: item["evidence_role"] for item in dossier["matches"]}
+        self.assertEqual(roles["fixture-early"], "direct_quotation")
+        self.assertEqual(roles["fixture-markup"], "metalinguistic_mention")
+        self.assertEqual(roles["fixture-late"], "independent_authorial_use")
         self.assertEqual(
             set(tool_calls),
             {

@@ -1,19 +1,26 @@
 # Corpus licensing gate
 
-Production downloading, metadata capture, indexing, redistribution, upload, and deployment are
-blocked. This is an engineering gate, not legal advice. As of 26 August 2026, the repository
-contains only repository-authored synthetic fixtures.
+This project separates **use** from **distribution**. A licence-reviewed, non-commercial local
+research run may read a pinned external OpenITI checkout under CC BY-NC-SA 4.0. Corpus text and
+the derived index may not enter Git, a container, Artifact Registry, the public service, or the
+submission bundle. Public distribution remains blocked. This is an engineering policy, not legal
+advice. The repository itself contains only repository-authored synthetic fixture text.
+
+| Scope | Machine state | Allowed delivery |
+|---|---|---|
+| Synthetic fixture | `not_required / fixture_only` | Public image and repository |
+| Local OpenITI research | `local_only_licence_reviewed / local_only` | Operator machine; redacted dossier only |
+| Public corpus service | `written_permission_granted / distribution_approved` | Opted-in isolated image build |
 
 ## Facts verified from primary sources
 
 - The newest full OpenITI snapshot found on the official Zenodo release series is version
   **2025.1.9**, published 30 December 2025, DOI
   [`10.5281/zenodo.17767721`](https://doi.org/10.5281/zenodo.17767721). Its landing page lists a
-  5.9 GB full-data archive, a 12.1 MB metadata table, and release notes. None was downloaded.
+  5.9 GB full-data archive, a 12.1 MB metadata table, and release notes.
 - OpenITI also published a primary-version-only dataset for **2025.1.9** on 12 February 2026,
   DOI [`10.5281/zenodo.18613982`](https://doi.org/10.5281/zenodo.18613982). Its landing page says
-  it contains the version marked `PRI` for each text. Its 2.9 GB archive and 7.0 MB metadata table
-  were not downloaded.
+  it contains the version marked `PRI` for each text.
 - [OpenITI's documentation](https://openiti.org/documentation/) says releases are published under
   [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en), requests
   citation of the specific file URIs, and warns that source and text quality vary.
@@ -25,7 +32,7 @@ contains only repository-authored synthetic fixtures.
 These facts do not themselves establish that a cash-prize demo, judge access, public Cloud Run
 service, or derived SQLite redistribution is permitted.
 
-## Written approval required
+## Written approval required for distribution
 
 Before changing `approval.status` to `written_permission_granted`, retain a written response from
 OpenITI/KITAB or another rights holder with authority over the selected material that expressly
@@ -42,19 +49,20 @@ covers all of the following:
   or separate permission from the relevant upstream rights holder where it does not.
 
 The written response must be saved outside Git and referenced by a non-secret record identifier in
-the approved manifest. A repository maintainer must approve the exact release, four-or-five-file
-list, source hashes, attribution, and planned distribution before any fetch or build.
+the distribution-approved manifest. A repository maintainer must approve the exact release,
+five-file list, source hashes, attribution, and planned distribution before an image build.
 
 ## Remaining checklist
 
 - [x] Record the newest verified full and primary-only release landing pages and version.
 - [x] Record OpenITI's published corpus licence and the canonical legal code.
+- [x] Pin five local-run version IDs and source hashes around the 500 AH cutoff.
+- [x] Exclude the secondary `Munqidh.Shamela...` candidate and use the primary
+      `0505Ghazali.Munqidh.JK009330-ara1`.
 - [ ] Obtain written permission covering the cash-prize use and deployment/distribution model.
 - [ ] Obtain and review the hackathon submission licence; compare it with BY-NC-SA obligations.
 - [ ] Confirm the rights and required attribution for each exact upstream digitization.
-- [ ] After permission, pin the exact release files, version IDs, checksums, and `PRI` status.
-- [ ] After permission, verify author/composition dates, edition or witness data, quality, and
-      completeness for every candidate from authoritative sources.
+- [ ] Verify edition/witness metadata, upstream rights, and completeness for every selected text.
 - [ ] Decide whether the derived database may be shared and under which licence; never assume the
       Apache-2.0 application licence applies to corpus content.
 - [ ] Obtain maintainer approval of the completed manifest and distribution plan.
@@ -68,3 +76,9 @@ Suggested concise request to OpenITI/KITAB:
 > state the required
 > attribution, modification notice, ShareAlike treatment, redistribution limits, and whether your
 > permission covers each named upstream digitization.
+
+The public submission disclosure is:
+
+> OpenITI is used only in a local non-commercial run under CC BY-NC-SA 4.0 with attribution; the
+> public deployment remains on a synthetic fixture pending permission to distribute the derived
+> index.

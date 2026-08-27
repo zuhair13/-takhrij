@@ -49,6 +49,29 @@ button:disabled { opacity: .55; cursor: wait; }
 .boundary-statement { color: var(--muted); }
 .error { color: var(--warning); }
 .gate-pass { color: var(--accent-dark); font-weight: 800; }
+
+.evidence-summary {
+  background: #f1eadb;
+  border-inline-start: 0.35rem solid var(--accent);
+  font-weight: 800;
+  padding: 0.8rem 1rem;
+}
+
+.evidence-match { border-inline-start: 0.35rem solid var(--accent); }
+.context-only { border-inline-start: 0.35rem solid #8b8174; }
+.evidence-status { font-weight: 800; }
+.evidence-status.counts { color: var(--accent-dark); }
+.evidence-status.excluded { color: #675f56; }
+
+.redaction-banner {
+  border-color: #9f6a18;
+  background: #fff7e8;
+}
+.redacted-trace {
+  background: #f5f3ee;
+  border-radius: 10px;
+  padding: 12px;
+}
 .variant-list { display: flex; flex-wrap: wrap; gap: 7px; padding: 0; list-style: none; }
 .variant-list li { border: 1px solid var(--line); border-radius: 99px; padding: 5px 10px; background: white; }
 .match { border-top: 1px solid var(--line); padding: 16px 0; }

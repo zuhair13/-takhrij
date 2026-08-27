@@ -23,11 +23,11 @@
       "author": "Synthetic Fixture",
       "path": "../tests/fixtures/corpus/early.txt",
       "source_uri": "fixture://early",
-      "source_sha256": "60c4e2448ac54877260304771afeac50b726a2bf10c3fee5edd74b3bf4d031ef",
+      "source_sha256": "e4b558ab9f37f6c7e6e90f9cd927ef461d7ae6af367e53ed505ca7d22305529b",
       "source_format": "plain_text",
       "language": "ara",
       "calendar": "AH",
-      "selection_reason": "Exercises an early attributed date and a diacritized clitic token.",
+      "selection_reason": "Exercises an early direct quotation containing a diacritized clitic token.",
       "provenance": {
         "metadata_source_uri": "fixture://early/metadata",
         "author_death_year_ah": 370,
@@ -41,7 +41,7 @@
         "witness_date": null,
         "witness_source_uri": null,
         "quality_status": "synthetic",
-        "quality_notes": "Not historical evidence; intentionally contains بالتخريج with marks."
+        "quality_notes": "Not historical evidence; contains بالتخريج inside an explicit synthetic quotation."
       }
     },
     {
@@ -51,7 +51,7 @@
       "author": "Synthetic Fixture",
       "path": "../tests/fixtures/corpus/late.txt",
       "source_uri": "fixture://late",
-      "source_sha256": "cb4dbf572677cc7afeaa21863c7e1bbd14089b3920504b4a5698717cab4bded1",
+      "source_sha256": "0d37ae591f7469124d1a3fbb14c29a7d9d0f70f322d943fbe7d4ec317256821c",
       "source_format": "plain_text",
       "language": "ara",
       "calendar": "AH",
@@ -79,11 +79,11 @@
       "author": "Synthetic Fixture",
       "path": "../tests/fixtures/corpus/openiti-synthetic.txt",
       "source_uri": "fixture://openiti-markup",
-      "source_sha256": "5963d2cb42f7c03382962c199c7cd9c953e7c7eb2a4403f06a380623fa4c1d61",
+      "source_sha256": "75f8ff65a0487e479e22408ea3eb5962acbc3a00a2c1d8fc6ed6fa12c6eef406",
       "source_format": "openiti_mARkdown",
       "language": "ara",
       "calendar": "AH",
-      "selection_reason": "Exercises deterministic markup stripping and post-ingestion offsets.",
+      "selection_reason": "Exercises markup stripping, post-ingestion offsets, and metalinguistic mention.",
       "provenance": {
         "metadata_source_uri": "fixture://openiti-markup/metadata",
         "author_death_year_ah": 410,
@@ -97,7 +97,7 @@
         "witness_date": null,
         "witness_source_uri": null,
         "quality_status": "synthetic",
-        "quality_notes": "Contains invented OpenITI-shaped controls and no historical content."
+        "quality_notes": "Contains an invented OpenITI-shaped metalinguistic control and no historical content."
       }
     }
   ]

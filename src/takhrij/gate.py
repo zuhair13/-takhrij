@@ -5,8 +5,8 @@ from __future__ import annotations
 import hashlib
 
 from takhrij.index import CorpusIndex
-from takhrij.models import Dossier, MatchClass, Verdict
-from takhrij.verdict import derive_verdict
+from takhrij.models import Dossier, Verdict
+from takhrij.verdict import derive_verdict, is_qualifying_attestation
 
 
 class IssuanceRejected(RuntimeError):
@@ -101,7 +101,7 @@ class IssuanceGate:
             errors.append("verdict_not_derived_from_evidence")
         if dossier.verdict is Verdict.EARLIER_MATCH_FOUND:
             has_evidence = any(
-                item.classification is MatchClass.TARGET_USE
+                is_qualifying_attestation(item)
                 and item.hit.provenance.comparison_year_ah is not None
                 and item.hit.provenance.comparison_year_ah < dossier.claim.cutoff_year_ah
                 for item in dossier.matches

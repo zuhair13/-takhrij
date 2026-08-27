@@ -1,31 +1,64 @@
-# Four-minute demo runbook
+# Four-minute judge demo
 
-Use a real, preflighted corpus case only after the written-permission gate is cleared. Until then,
-the synthetic fixture is only for engineering rehearsal and must never be shown as historical
-evidence. The catalogue-only candidates are not claims and must not be used to imply a verdict.
+The first sentence is the product:
+
+> A word found in a book is not necessarily a word used by its author.
+
+The demo shows one complete research decision, not an agent waiting for days. Search retrieves
+strings; TAKHRIJ adjudicates which matches count as historical evidence.
 
 | Time | Screen | Line |
 |---:|---|---|
-| 0:00–0:25 | Form, sense, cutoff AH, release, book count | “This is a falsifiable claim about this corpus, not Arabic history.” |
-| 0:25–0:45 | Network response and Firestore queued doc | “The API returns 202; the research continues after the tab closes.” |
-| 0:45–1:20 | First retrieval and provisional label | “The first pass found no earlier target use. It is explicitly provisional.” |
-| 1:20–2:05 | Audit progress and Cloud Run log | “The system is required to argue against its own search.” |
-| 2:05–2:35 | Missing variant and second exact lookup | “It caught an omitted variant; code, not the model, checks whether it exists.” |
-| 2:35–3:10 | Earlier highlighted raw span and provenance | “The exact bytes resolve to the named source and date field.” |
-| 3:10–3:35 | Final verdict flip | “The claim is falsified by the system built to test it.” |
-| 3:35–3:50 | Deliberate Gate rejection clip | “Interpretation can be wrong; quotation and source linkage cannot be fabricated past this gate.” |
-| 3:50–4:00 | Limits panel | “No corpus match is never proof of historical absence.” |
+| 0:00–0:20 | Input and frozen corpus boundary | “I am testing independent authorial use before this cutoff—not whether the string appears anywhere.” |
+| 0:20–0:45 | Raw-hit counter | “Ordinary search stops here. These are string matches, not yet attestations.” |
+| 0:45–1:25 | Three hit cards | “Gemini answers two separate questions: target meaning, then evidence role.” |
+| 1:25–1:55 | Quotation and mention marked “context only” | “A target-sense quotation is real text, but it does not prove this book's author independently used the word.” |
+| 1:55–2:25 | Independent-use card and dates | “Only target sense plus independent authorial use plus a secure pre-cutoff date can affect the verdict.” |
+| 2:25–2:55 | Devil's Advocate progress and second lookup | “The agent attacks the search coverage; deterministic tools execute any missing-form lookup.” |
+| 2:55–3:20 | Gate badge and source/hash fields | “The model interprets context. Code rechecks existence, quote bytes, offsets, source, date, and verdict derivation.” |
+| 3:20–3:40 | One-glance architecture / Cloud Run service | “This is a reusable attestation layer for historical language search, built with ADK, Gemini on Google Cloud, and Cloud Run.” |
+| 3:40–4:00 | Limits and licence line | “The result is corpus-bounded. The real corpus run is local and redacted; the public image remains synthetic.” |
 
-Preflight the chosen claim ten times with temperature zero. Save each dossier hash and reject the
-case if the same inputs do not produce the same classifications and audit proposal consistently.
-Warm the Cloud Run service immediately before recording, but keep the research execution live and
-unedited.
+## Recording choice
 
-For the deliberate Gate rejection rehearsal, corrupt only a copied fixture quote and run:
+Use a completed local OpenITI run only after all of these are true:
+
+- the five pinned source hashes match;
+- ADC reaches the configured Google Cloud project;
+- the same input has been preflighted for stable two-axis labels;
+- the output is the server-side redacted, post-Gate dossier;
+- the spoken result exactly matches the recorded dossier.
+
+If any condition fails, record the synthetic fixture and label it on screen as non-evidentiary.
+Never invent a real corpus count or verdict.
+
+## Fast rehearsal
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -p 'test_verdict_gate.py' \
+PYTHONPATH=src python scripts/run_fixture_demo.py
+PYTHONPATH=src python -m unittest tests.test_verdict_gate -v
+```
+
+The fixture's intended one-glance result is:
+
+```text
+3 raw matches · 2 before cutoff · 0 qualifying earlier evidence
+```
+
+The earlier matches are a direct quotation and a metalinguistic mention. The independent authorial
+use is later than the cutoff, so the negative corpus-bounded verdict is valid.
+
+For the deliberate Gate rejection clip, corrupt only a copied fixture quote and run:
+
+```bash
+PYTHONPATH=src python -m unittest tests.test_verdict_gate \
   -k gate_rejects_changed_quote -v
 ```
 
-Never corrupt or edit the production corpus for the recording.
+## Submission disclosure
+
+Use this sentence in Devpost:
+
+> OpenITI is used only in a local non-commercial run under CC BY-NC-SA 4.0 with attribution; the
+> public deployment remains on a synthetic fixture pending permission to distribute the derived
+> index.

@@ -13,11 +13,21 @@ from pathlib import Path
 from typing import Any
 
 from takhrij.ingestion import ingest_source
-from takhrij.manifest import APPROVED_KIND, CorpusManifest, load_manifest, resolve_document_path
+from takhrij.manifest import (
+    APPROVED_KIND,
+    FIXTURE_KIND,
+    LOCAL_ONLY_STATUS,
+    CorpusManifest,
+    load_manifest,
+    resolve_document_path,
+)
 from takhrij.normalization import normalize_token, tokenize_with_offsets
 
 SCHEMA_VERSION = 5
 APPROVED_STATUS = "written_permission_granted"
+FIXTURE_SCOPE = "fixture_only"
+LOCAL_ONLY_SCOPE = "local_only"
+APPROVED_SCOPE = "distribution_approved"
 
 SCHEMA = """
 PRAGMA page_size = 4096;
@@ -87,22 +97,48 @@ def _enforce_approval_boundary(
     manifest_path: Path,
     output_path: Path,
     *,
-    allow_approved_corpus: bool,
-) -> None:
+    allow_local_only_corpus: bool = False,
+    allow_approved_corpus: bool = False,
+) -> str:
+    if allow_local_only_corpus and allow_approved_corpus:
+        raise PermissionError("local-only and distribution-approved flags are mutually exclusive")
+    if manifest.content_kind == FIXTURE_KIND:
+        if allow_local_only_corpus or allow_approved_corpus:
+            raise PermissionError("external-corpus flags may not be used with a fixture manifest")
+        return FIXTURE_SCOPE
     if manifest.content_kind != APPROVED_KIND:
-        return
-    if not allow_approved_corpus:
+        raise PermissionError("unknown corpus content kind")
+
+    status = manifest.approval.status
+    if not allow_local_only_corpus and not allow_approved_corpus:
         raise PermissionError(
-            "approved corpus builds require the explicit --allow-approved-corpus flag"
+            "external corpus builds require an explicit --allow-local-only-corpus "
+            "or --allow-approved-corpus flag"
         )
-    if manifest.approval.status != APPROVED_STATUS:
+    if status == LOCAL_ONLY_STATUS and not allow_local_only_corpus:
         raise PermissionError(
-            f"approved corpus build blocked: approval.status must be {APPROVED_STATUS}"
+            "local-only corpus builds require the explicit --allow-local-only-corpus flag"
         )
+    if status == APPROVED_STATUS and not allow_approved_corpus:
+        raise PermissionError(
+            "distribution-approved corpus builds require the explicit "
+            "--allow-approved-corpus flag"
+        )
+    if status not in {LOCAL_ONLY_STATUS, APPROVED_STATUS}:
+        raise PermissionError(
+            "external corpus build blocked: approval.status must be "
+            f"{LOCAL_ONLY_STATUS} or {APPROVED_STATUS}"
+        )
+    if status == LOCAL_ONLY_STATUS and allow_approved_corpus:
+        raise PermissionError("local-only corpus may not use the distribution-approved flag")
+    if status == APPROVED_STATUS and allow_local_only_corpus:
+        raise PermissionError("distribution-approved corpus may not use the local-only flag")
+
     repository_root = _repository_root(manifest_path)
     resolved_output = output_path.resolve()
     if resolved_output == repository_root or repository_root in resolved_output.parents:
-        raise PermissionError("approved derived databases must be built outside the repository")
+        raise PermissionError("external derived databases must be built outside the repository")
+    return LOCAL_ONLY_SCOPE if status == LOCAL_ONLY_STATUS else APPROVED_SCOPE
 
 
 def _document_row(document: Any, ingested: Any, manifest: CorpusManifest) -> tuple[Any, ...]:
@@ -143,6 +179,7 @@ def build_index(
     manifest_path: Path,
     output_path: Path,
     *,
+    allow_local_only_corpus: bool = False,
     allow_approved_corpus: bool = False,
 ) -> dict[str, Any]:
     """Build a deterministic database; real-data builds are explicit and external-only."""
@@ -150,10 +187,11 @@ def build_index(
     manifest_path = manifest_path.resolve()
     manifest = load_manifest(manifest_path)
     output_path = output_path.resolve()
-    _enforce_approval_boundary(
+    delivery_scope = _enforce_approval_boundary(
         manifest,
         manifest_path,
         output_path,
+        allow_local_only_corpus=allow_local_only_corpus,
         allow_approved_corpus=allow_approved_corpus,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -211,6 +249,7 @@ def build_index(
                 "attribution": manifest.attribution,
                 "approval_status": manifest.approval.status,
                 "approval_reference": manifest.approval.reference,
+                "delivery_scope": delivery_scope,
                 "manifest_sha256": manifest.canonical_sha256,
                 "document_count": str(len(manifest.documents)),
                 "token_count": str(token_count),
@@ -242,7 +281,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest", type=Path)
     parser.add_argument("output", type=Path)
-    parser.add_argument(
+    corpus_mode = parser.add_mutually_exclusive_group()
+    corpus_mode.add_argument(
+        "--allow-local-only-corpus",
+        action="store_true",
+        help="permit a licence-reviewed corpus for a non-distributable local run",
+    )
+    corpus_mode.add_argument(
         "--allow-approved-corpus",
         action="store_true",
         help="permit a written-permission manifest to read an external corpus root",
@@ -253,6 +298,7 @@ def main() -> None:
             build_index(
                 args.manifest,
                 args.output,
+                allow_local_only_corpus=args.allow_local_only_corpus,
                 allow_approved_corpus=args.allow_approved_corpus,
             ),
             ensure_ascii=False,

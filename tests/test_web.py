@@ -13,6 +13,7 @@ from takhrij.config import Settings
 from takhrij.index_builder import build_index
 from takhrij.jobs import InMemoryJobStore
 from takhrij.publisher import RecordingPublisher
+from takhrij.serde import redact_dossier_for_display
 from takhrij.web import _run_inline_worker, _select_asset_root, create_app
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -92,6 +93,124 @@ class WebTests(unittest.TestCase):
                 store=self.store,
                 publisher=self.publisher,
             )
+
+    def test_local_only_database_requires_redaction(self):
+        with closing(sqlite3.connect(self.settings.corpus_db_path)) as connection, connection:
+            connection.executemany(
+                "UPDATE corpus_metadata SET value = ? WHERE key = ?",
+                (
+                    ("approved_corpus", "content_kind"),
+                    ("local_only_licence_reviewed", "approval_status"),
+                    ("local_only", "delivery_scope"),
+                ),
+            )
+        with self.assertRaisesRegex(ValueError, "REDACT_CORPUS_TEXT"):
+            create_app(
+                settings=self.settings,
+                store=self.store,
+                publisher=self.publisher,
+            )
+        local_settings = replace(self.settings, redact_corpus_text=True)
+        app = create_app(
+            settings=local_settings,
+            store=self.store,
+            publisher=self.publisher,
+        )
+        page = app.test_client().get("/").get_data(as_text=True)
+        self.assertIn("Local licensed-corpus mode", page)
+
+    def test_local_only_api_redacts_corpus_text_server_side(self):
+        with closing(sqlite3.connect(self.settings.corpus_db_path)) as connection, connection:
+            connection.executemany(
+                "UPDATE corpus_metadata SET value = ? WHERE key = ?",
+                (
+                    ("approved_corpus", "content_kind"),
+                    ("local_only_licence_reviewed", "approval_status"),
+                    ("local_only", "delivery_scope"),
+                ),
+            )
+        local_settings = replace(self.settings, redact_corpus_text=True)
+
+        def verifier(*_args, **_kwargs):
+            return {"email": local_settings.pubsub_service_account}
+
+        def runner(_index, _settings, _claim, _progress):
+            return {
+                "gate_passed": True,
+                "verdict": "NO_EARLIER_MATCH_IN_DECLARED_CORPUS",
+                "matches": [
+                    {
+                        "classification": "target_use",
+                        "evidence_role": "direct_quotation",
+                        "reason": "free-form context rationale",
+                        "hit": {
+                            "doc_id": "fixture-early",
+                            "raw_form": "بالتخريج",
+                            "prefix": "قبل ",
+                            "match": "بالتخريج",
+                            "suffix": " بعد",
+                            "normalized_form": "بالتخريج",
+                            "raw_start": 1,
+                            "raw_end": 10,
+                            "source_sha256": "a" * 64,
+                            "raw_text_sha256": "b" * 64,
+                        },
+                    }
+                ],
+                "audit": {
+                    "completed": True,
+                    "findings": [{"kind": "other", "rationale": "free-form audit text"}],
+                },
+                "limitations": [],
+            }
+
+        app = create_app(
+            settings=local_settings,
+            store=self.store,
+            publisher=self.publisher,
+            worker_runner=runner,
+            oidc_verifier=verifier,
+        )
+        app.testing = True
+        client = app.test_client()
+        created = client.post("/claims", json=self._claim()).get_json()
+        response = client.post(
+            "/worker",
+            json=self._push(created["job_id"]),
+            headers={"Authorization": "Bearer test"},
+        )
+        self.assertEqual(response.status_code, 204)
+        dossier = client.get(f"/claims/{created['job_id']}").get_json()["dossier"]
+        hit = dossier["matches"][0]["hit"]
+        self.assertNotIn("raw_form", hit)
+        self.assertNotIn("match", hit)
+        self.assertNotIn("reason", dossier["matches"][0])
+        self.assertNotIn("rationale", dossier["audit"]["findings"][0])
+        self.assertEqual(dossier["display_policy"]["corpus_text"], "redacted")
+
+    def test_display_redaction_requires_gate_and_preserves_source_object(self):
+        source = {
+            "gate_passed": True,
+            "matches": [
+                {
+                    "reason": "context",
+                    "hit": {
+                        "raw_form": "لفظة",
+                        "prefix": "قبل",
+                        "match": "لفظة",
+                        "suffix": "بعد",
+                        "doc_id": "book",
+                    },
+                }
+            ],
+            "audit": {"findings": [{"kind": "other", "rationale": "audit"}]},
+            "limitations": [],
+        }
+        visible = redact_dossier_for_display(source)
+        self.assertIn("raw_form", source["matches"][0]["hit"])
+        self.assertNotIn("raw_form", visible["matches"][0]["hit"])
+        with self.assertRaisesRegex(ValueError, "Gate-issued"):
+            redact_dossier_for_display({"gate_passed": False})
 
     def test_inline_failure_releases_demo_capacity(self):
         def failing_runner(*_args, **_kwargs):

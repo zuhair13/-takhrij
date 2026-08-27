@@ -6,7 +6,11 @@ import argparse
 from pathlib import Path
 
 from takhrij.index import CorpusIndex
-from takhrij.index_builder import APPROVED_STATUS
+from takhrij.index_builder import (
+    APPROVED_SCOPE,
+    APPROVED_STATUS,
+    FIXTURE_SCOPE,
+)
 from takhrij.manifest import APPROVED_KIND, FIXTURE_KIND
 
 APPROVED_IMAGE_OPT_IN = "written_permission_granted"
@@ -19,12 +23,18 @@ def verify_image_database(database_path: Path, approved_image_opt_in: str) -> di
     if content_kind == FIXTURE_KIND:
         if metadata.get("release") != FIXTURE_RELEASE:
             raise PermissionError("fixture image database has an invalid release label")
+        if metadata.get("delivery_scope") != FIXTURE_SCOPE:
+            raise PermissionError("fixture image database requires delivery_scope=fixture_only")
         return metadata
     if content_kind != APPROVED_KIND:
         raise PermissionError("image database has an unknown content_kind")
     if metadata.get("approval_status") != APPROVED_STATUS:
         raise PermissionError(
             f"approved image database requires approval_status={APPROVED_STATUS}"
+        )
+    if metadata.get("delivery_scope") != APPROVED_SCOPE:
+        raise PermissionError(
+            "approved image database requires delivery_scope=distribution_approved"
         )
     if approved_image_opt_in != APPROVED_IMAGE_OPT_IN:
         raise PermissionError(

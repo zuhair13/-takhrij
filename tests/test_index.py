@@ -27,10 +27,15 @@ class IndexTests(unittest.TestCase):
         metadata = self.index.metadata()
         self.assertEqual(metadata["release"], "FIXTURE-ONLY")
         self.assertEqual(metadata["content_kind"], "synthetic_fixture")
+        self.assertEqual(metadata["delivery_scope"], "fixture_only")
         self.assertEqual(metadata["document_count"], "3")
         self.assertEqual(metadata["offset_unit"], "unicode_code_points")
         self.assertTrue(self.index.declared_books_exist(("fixture-early", "fixture-late")))
         self.assertFalse(self.index.declared_books_exist(("missing",)))
+        self.assertEqual(
+            self.index.document_ids(),
+            ("fixture-early", "fixture-late", "fixture-markup"),
+        )
 
     def test_document_provenance_and_hashes_are_exact(self):
         document = self.index.get_document("fixture-early")
