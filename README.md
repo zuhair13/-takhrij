@@ -49,19 +49,21 @@ the fixture until distribution permission covers the derived index.
 |---|---|
 | SQLite index, offsets, two-axis adjudication, verdicts, Gate | Implemented and locally tested |
 | Leases, duplicate delivery, stale-attempt CAS, terminal failure | Implemented and locally tested |
-| ADK 2.x dynamic workflow, three model roles, deterministic tool registry | Implemented and executed end-to-end with deterministic model doubles |
-| Bilingual web UI and four routes | Implemented and covered by HTTP tests |
-| Container, Cloud Build, IAM and Pub/Sub setup scripts | Prepared, not executed against a Google Cloud account |
+| ADK 2.x dynamic workflow, three model roles, deterministic tool registry | Implemented and verified live with Gemini 3.5 Flash through Vertex AI |
+| Bilingual web UI and four routes | Implemented, HTTP-tested, and publicly deployed on Cloud Run |
+| Container, Cloud Build and IAM setup | Executed successfully in Google Cloud project `integral-loop-411822` |
 | Source-agnostic manifest, ingestion, deterministic index build | Implemented with fixture, local-only, and distribution-approved scopes |
 | Local OpenITI five-book manifest | Pinned to release 2025.1.9; local non-commercial run path implemented |
 | Public OpenITI image | Blocked until distribution permission covers the derived index and service |
-| Live Gemini/Firestore/Pub/Sub integration | Deliberately blocked pending cloud credentials and project setup |
+| Live Gemini integration | Verified end-to-end on Cloud Run against the synthetic fixture; Firestore/Pub/Sub production activation remains licence-gated |
 
-Verification snapshot (27 Aug 2026): 92 tests pass with 86% branch coverage, including an actual
+Verification snapshot (29 Aug 2026): 92 tests pass with 86% branch coverage, including an actual
 ADK `Runner` execution with all six registered `FunctionTool` objects observed in the run.
 Ruff, Python compilation, Node JavaScript syntax, Bash syntax, Cloud Build YAML parsing, the
-corpus-boundary scan, and the runtime-provider scan are clean. A Docker-compatible engine is not
-available in this environment, so a real container build remains unexecuted.
+corpus-boundary scan, and the runtime-provider scan are clean.
+Cloud Build successfully built the container, and Cloud Run served a complete live Gemini/ADK
+adjudication at https://takhrij-39896183136.us-central1.run.app. The hosted service contains only
+repository-authored synthetic fixture content and is not historical evidence.
 
 The three-document synthetic build is byte-reproducible. Its size and build time validate the
 workflow only; they are not production-corpus estimates.
