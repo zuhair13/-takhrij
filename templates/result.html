@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>TAKHRIJ · Live redacted result · النتيجة الحية المنقّحة</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">LIVE GOOGLE CLOUD RUN · رَن حيّ على سحابة جوجل</p>
+        <h1>TAKHRIJ <span>تخريج</span></h1>
+        <p class="lead">
+          A word found in a book is not necessarily a word used by its author.
+          <bdi dir="rtl">وجود اللفظة في كتاب لا يعني أن مؤلفه استعملها.</bdi>
+        </p>
+      </header>
+
+      <aside class="redaction-banner">
+        <strong>Local licensed-corpus result · نتيجة متن مرخّص محلياً</strong>
+        <p>
+          This page contains only the post-Gate redacted dossier. Corpus quotations and model
+          rationales never enter the page.
+          <bdi dir="rtl">تعرض الصفحة الدوسييه المنقّح بعد البوابة فقط؛ ولا يدخلها نص المتن أو تعليل النموذج.</bdi>
+        </p>
+      </aside>
+
+      <section class="card run-card" aria-labelledby="run-heading">
+        <h2 id="run-heading">Verified run <bdi dir="rtl">· الرَن المتحقَّق منه</bdi></h2>
+        <dl class="provenance run-summary">
+          <dt>Runtime · بيئة التشغيل</dt>
+          <dd>{{ run_policy.runtime }}</dd>
+          <dt>Release · الإصدار</dt>
+          <dd>{{ corpus.release }}</dd>
+          <dt>Documents · الكتب</dt>
+          <dd>{{ corpus.document_count }}</dd>
+          <dt>Indexed tokens · الكلمات المفهرسة</dt>
+          <dd>{{ corpus.token_count }}</dd>
+          <dt>Claim contract · عقد الادعاء</dt>
+          <dd>{{ run_policy.claim_id }} · v{{ run_policy.contract_version }}</dd>
+          <dt>Contract SHA-256</dt>
+          <dd class="digest">{{ run_policy.contract_sha256 }}</dd>
+          <dt>Manifest SHA-256</dt>
+          <dd class="digest">{{ corpus.manifest_sha256 }}</dd>
+          <dt>Delivery scope · نطاق العرض</dt>
+          <dd>{{ run_policy.delivery_scope }} · redacted</dd>
+        </dl>
+      </section>
+
+      <section id="status-card" class="card" aria-live="polite">
+        <h2>Result <bdi dir="rtl">· النتيجة</bdi></h2>
+        <p id="status-line" class="gate-pass">
+          Issuance Gate passed · اكتمل الرَن الحقيقي واجتاز بوابة الإصدار
+        </p>
+        <div id="result"></div>
+      </section>
+
+      <aside>
+        <strong>Boundary statement <bdi dir="rtl">· بيان الحدود</bdi></strong>
+        <p>
+          No qualifying match in this exact release and book list is not proof of absence from
+          Arabic history.
+          <bdi dir="rtl">عدم وجود شاهد محتسب ضمن هذا الإصدار وهذه الكتب ليس إثباتاً للغياب من تاريخ العربية.</bdi>
+        </p>
+      </aside>
+    </main>
+
+    <script id="dossier-data" type="application/json">{{ dossier | tojson }}</script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        const payload = document.querySelector("#dossier-data");
+        renderDossier(JSON.parse(payload.textContent));
+      });
+    </script>
+  </body>
+</html>
