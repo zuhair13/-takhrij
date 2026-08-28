@@ -2,7 +2,7 @@ const form = document.querySelector("#claim-form");
 const statusCard = document.querySelector("#status-card");
 const statusLine = document.querySelector("#status-line");
 const result = document.querySelector("#result");
-const submit = form.querySelector("button");
+const submit = form?.querySelector("button") || null;
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -86,12 +86,17 @@ function renderDossier(dossier) {
       "evidence-summary"
     )
   );
-  const variantsTitle = element("h3", "Variants searched · الصيغ التي بُحثت");
+  const variantsPanel = element("details", undefined, "variants-panel");
+  const variantsTitle = element(
+    "summary",
+    `Variants searched (${dossier.variants.length}) · الصيغ التي بُحثت`
+  );
   const variants = element("ul", undefined, "variant-list");
   dossier.variants.forEach((item) => {
     variants.append(element("li", `${item.surface_form} · ${item.source}`));
   });
-  result.append(variantsTitle, variants);
+  variantsPanel.append(variantsTitle, variants);
+  result.append(variantsPanel);
 
   result.append(element("h3", "Attestations · الشواهد"));
   if (!dossier.matches.length) {
@@ -220,45 +225,47 @@ async function poll(url) {
   const progress = job.progress?.label || job.progress?.stage || job.status;
   statusLine.textContent = job.progress?.label || stageLabels[progress] || progress;
   if (job.status === "complete") {
-    submit.disabled = false;
+    if (submit) submit.disabled = false;
     renderDossier(job.dossier);
     return;
   }
   if (job.status === "failed") {
-    submit.disabled = false;
+    if (submit) submit.disabled = false;
     throw new Error("The research job failed · فشلت مهمة البحث");
   }
   setTimeout(() => poll(url).catch(showError), 1800);
 }
 
 function showError(error) {
-  submit.disabled = false;
+  if (submit) submit.disabled = false;
   statusLine.textContent = error.message;
   statusLine.className = "error";
 }
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  submit.disabled = true;
-  statusCard.classList.remove("hidden");
-  statusLine.className = "";
-  statusLine.textContent = "queued · في قائمة الانتظار";
-  result.replaceChildren();
-  const payload = {
-    form: document.querySelector("#form").value,
-    target_sense: document.querySelector("#target_sense").value,
-    cutoff_year_ah: Number(document.querySelector("#cutoff_year_ah").value),
-  };
-  try {
-    const response = await fetch("/claims", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.message || body.error || "Request failed.");
-    poll(body.status_url).catch(showError);
-  } catch (error) {
-    showError(error);
-  }
-});
+if (form) {
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    statusCard.classList.remove("hidden");
+    statusLine.className = "";
+    statusLine.textContent = "queued · في قائمة الانتظار";
+    result.replaceChildren();
+    const payload = {
+      form: document.querySelector("#form").value,
+      target_sense: document.querySelector("#target_sense").value,
+      cutoff_year_ah: Number(document.querySelector("#cutoff_year_ah").value),
+    };
+    try {
+      const response = await fetch("/claims", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || body.error || "Request failed.");
+      poll(body.status_url).catch(showError);
+    } catch (error) {
+      showError(error);
+    }
+  });
+}
