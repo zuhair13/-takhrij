@@ -114,20 +114,25 @@ function renderDossier(dossier) {
     );
     let evidenceDisplay;
     if (corpusTextRedacted) {
-      evidenceDisplay = element("dl", undefined, "provenance redacted-trace");
-      addField(evidenceDisplay, "Version ID · معرّف النسخة", item.hit.doc_id);
+      const trace = element("dl", undefined, "provenance redacted-trace");
+      addField(trace, "Version ID · معرّف النسخة", item.hit.doc_id);
       addField(
-        evidenceDisplay,
+        trace,
         "Normalized token · اللفظة المطبّعة",
         item.hit.normalized_form
       );
       addField(
-        evidenceDisplay,
+        trace,
         "Unicode offsets · الإزاحات",
         `${item.hit.raw_start}–${item.hit.raw_end}`
       );
-      addField(evidenceDisplay, "Source SHA-256", item.hit.source_sha256);
-      addField(evidenceDisplay, "Parsed-text SHA-256", item.hit.raw_text_sha256);
+      addField(trace, "Source SHA-256", item.hit.source_sha256);
+      addField(trace, "Parsed-text SHA-256", item.hit.raw_text_sha256);
+      evidenceDisplay = element("details", undefined, "trace-panel");
+      evidenceDisplay.append(
+        element("summary", "Reproducibility trace · أثر قابلية التكرار"),
+        trace
+      );
     } else {
       evidenceDisplay = element("p", undefined, "quote");
       evidenceDisplay.dir = "rtl";
@@ -157,8 +162,8 @@ function renderDossier(dossier) {
       "Witness date · تاريخ الشاهد المخطوط",
       item.hit.provenance.witness_date
     );
+    if (!corpusTextRedacted) box.append(evidenceDisplay);
     box.append(
-      evidenceDisplay,
       element(
         "p",
         qualifiesEarlier
@@ -189,6 +194,7 @@ function renderDossier(dossier) {
       element("p", `Source · المصدر: ${item.hit.source_uri}`, "meta source"),
       provenance
     );
+    if (corpusTextRedacted) box.append(evidenceDisplay);
     result.append(box);
   });
 
