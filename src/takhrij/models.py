@@ -16,7 +16,17 @@ class Verdict(StrEnum):
 class MatchClass(StrEnum):
     TARGET_USE = "target_use"
     HOMOGRAPH = "homograph"
-    QUOTATION = "quotation"
+    UNCERTAIN = "uncertain"
+
+
+class EvidenceRole(StrEnum):
+    """How a matching string functions in its containing source."""
+
+    INDEPENDENT_AUTHORIAL_USE = "independent_authorial_use"
+    FORMULAIC_ALLUSION = "formulaic_allusion"
+    DIRECT_QUOTATION = "direct_quotation"
+    ATTRIBUTED_QUOTATION = "attributed_quotation"
+    METALINGUISTIC_MENTION = "metalinguistic_mention"
     UNCERTAIN = "uncertain"
 
 
@@ -37,7 +47,8 @@ class Claim:
 
     def proposition(self) -> str:
         return (
-            f"No target-use attestation of any enumerated variant of {self.form!r} "
+            f"No independent authorial target-use attestation of any enumerated variant "
+            f"of {self.form!r} "
             f"in the stated sense occurs before {self.cutoff_year_ah} AH within "
             f"corpus release {self.corpus_release} and the declared book list."
         )
@@ -45,9 +56,9 @@ class Claim:
     def boundary_statement(self, verdict: Verdict) -> str:
         scope = f"corpus release {self.corpus_release} and its declared book list"
         if verdict is Verdict.EARLIER_MATCH_FOUND:
-            return f"An earlier target-use match was found within {scope}."
+            return f"An earlier independent authorial target-use match was found within {scope}."
         if verdict is Verdict.NO_EARLIER_MATCH_IN_DECLARED_CORPUS:
-            return f"No earlier target-use match was found within {scope}."
+            return f"No earlier independent authorial target-use match was found within {scope}."
         return f"The available coverage or classifications were insufficient within {scope}."
 
 
@@ -55,8 +66,17 @@ class Claim:
 class Provenance:
     author_death_year_ah: int | None = None
     composition_date_ah: int | None = None
+    metadata_source_uri: str | None = None
+    author_date_source_uri: str | None = None
+    composition_date_source_uri: str | None = None
+    edition_citation: str | None = None
     edition_date: str | None = None
+    edition_source_uri: str | None = None
+    witness_description: str | None = None
     witness_date: str | None = None
+    witness_source_uri: str | None = None
+    quality_status: str | None = None
+    quality_notes: str | None = None
 
     @property
     def comparison_year_ah(self) -> int | None:
@@ -80,6 +100,15 @@ class Document:
     source_uri: str
     corpus_release: str
     provenance: Provenance
+    work_id: str = ""
+    language: str = "ara"
+    source_format: str = ""
+    parser_version: str = ""
+    source_sha256: str = ""
+    raw_text_sha256: str = ""
+    license_id: str = ""
+    license_uri: str = ""
+    selection_reason: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +136,15 @@ class RetrievalHit:
     match: str
     suffix: str
     provenance: Provenance
+    work_id: str = ""
+    language: str = "ara"
+    source_format: str = ""
+    parser_version: str = ""
+    source_sha256: str = ""
+    raw_text_sha256: str = ""
+    license_id: str = ""
+    license_uri: str = ""
+    selection_reason: str = ""
 
     @property
     def key(self) -> str:
@@ -117,6 +155,7 @@ class RetrievalHit:
 class ClassifiedMatch:
     hit: RetrievalHit
     classification: MatchClass
+    evidence_role: EvidenceRole
     reason: str
     confidence: float
 

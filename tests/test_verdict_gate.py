@@ -8,7 +8,14 @@ from pathlib import Path
 from takhrij.gate import IssuanceGate, IssuanceRejected
 from takhrij.index import CorpusIndex
 from takhrij.index_builder import build_index
-from takhrij.models import AuditFinding, AuditReport, Claim, MatchClass, Verdict
+from takhrij.models import (
+    AuditFinding,
+    AuditReport,
+    Claim,
+    EvidenceRole,
+    MatchClass,
+    Verdict,
+)
 from takhrij.pipeline import apply_classifications, assemble_dossier, expand_forms, retrieve_pass
 from takhrij.verdict import derive_verdict
 
@@ -32,7 +39,12 @@ class VerdictAndGateTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def _classified(self, form: str, classification: MatchClass):
+    def _classified(
+        self,
+        form: str,
+        classification: MatchClass,
+        evidence_role: EvidenceRole = EvidenceRole.INDEPENDENT_AUTHORIAL_USE,
+    ):
         variants = expand_forms(form, [], 64)
         hits, search_pass = retrieve_pass(
             self.index, self.claim, variants, pass_name="initial", max_hits=200
@@ -41,6 +53,7 @@ class VerdictAndGateTests(unittest.TestCase):
             {
                 "hit_key": hit.key,
                 "classification": classification.value,
+                "evidence_role": evidence_role.value,
                 "reason": "test",
                 "confidence": 1,
             }
@@ -48,15 +61,43 @@ class VerdictAndGateTests(unittest.TestCase):
         ]
         return variants, hits, search_pass, apply_classifications(hits, decisions)
 
-    def test_only_target_use_can_break_claim(self):
+    def test_only_independent_target_use_can_break_claim(self):
         _, _, _, matches = self._classified("بالتخريج", MatchClass.TARGET_USE)
         self.assertEqual(
             derive_verdict(matches, cutoff_year_ah=500, coverage_complete=True),
             Verdict.EARLIER_MATCH_FOUND,
         )
-        _, _, _, quoted = self._classified("بالتخريج", MatchClass.QUOTATION)
+        excluded_roles = (
+            EvidenceRole.DIRECT_QUOTATION,
+            EvidenceRole.ATTRIBUTED_QUOTATION,
+            EvidenceRole.METALINGUISTIC_MENTION,
+            EvidenceRole.FORMULAIC_ALLUSION,
+        )
+        for role in excluded_roles:
+            with self.subTest(role=role):
+                _, _, _, excluded = self._classified(
+                    "بالتخريج", MatchClass.TARGET_USE, role
+                )
+                self.assertEqual(
+                    derive_verdict(excluded, cutoff_year_ah=500, coverage_complete=True),
+                    Verdict.NO_EARLIER_MATCH_IN_DECLARED_CORPUS,
+                )
+
+    def test_uncertain_evidence_role_blocks_negative_verdict(self):
+        _, _, _, matches = self._classified(
+            "بالتخريج",
+            MatchClass.TARGET_USE,
+            EvidenceRole.UNCERTAIN,
+        )
         self.assertEqual(
-            derive_verdict(quoted, cutoff_year_ah=500, coverage_complete=True),
+            derive_verdict(matches, cutoff_year_ah=500, coverage_complete=True),
+            Verdict.INCONCLUSIVE,
+        )
+
+    def test_homograph_cannot_break_claim_even_with_independent_role(self):
+        _, _, _, matches = self._classified("بالتخريج", MatchClass.HOMOGRAPH)
+        self.assertEqual(
+            derive_verdict(matches, cutoff_year_ah=500, coverage_complete=True),
             Verdict.NO_EARLIER_MATCH_IN_DECLARED_CORPUS,
         )
 
@@ -138,6 +179,7 @@ class VerdictAndGateTests(unittest.TestCase):
                 {
                     "hit_key": hit.key,
                     "classification": MatchClass.HOMOGRAPH.value,
+                    "evidence_role": EvidenceRole.INDEPENDENT_AUTHORIAL_USE.value,
                     "reason": "test",
                     "confidence": 1,
                 }
@@ -179,6 +221,7 @@ class VerdictAndGateTests(unittest.TestCase):
                 {
                     "hit_key": hit.key,
                     "classification": MatchClass.TARGET_USE.value,
+                    "evidence_role": EvidenceRole.INDEPENDENT_AUTHORIAL_USE.value,
                     "reason": "weak",
                     "confidence": 0.4,
                 }
@@ -186,6 +229,35 @@ class VerdictAndGateTests(unittest.TestCase):
             ],
         )
         self.assertEqual(matches[0].classification, MatchClass.UNCERTAIN)
+        self.assertEqual(matches[0].evidence_role, EvidenceRole.UNCERTAIN)
+        self.assertEqual(
+            derive_verdict(matches, cutoff_year_ah=500, coverage_complete=True),
+            Verdict.INCONCLUSIVE,
+        )
+
+    def test_missing_evidence_role_fails_closed(self):
+        variants = expand_forms("بالتخريج", [], 64)
+        hits, _ = retrieve_pass(
+            self.index,
+            self.claim,
+            variants,
+            pass_name="initial",
+            max_hits=200,
+        )
+        matches = apply_classifications(
+            hits,
+            [
+                {
+                    "hit_key": hit.key,
+                    "classification": MatchClass.TARGET_USE.value,
+                    "reason": "role omitted",
+                    "confidence": 1.0,
+                }
+                for hit in hits
+            ],
+        )
+        self.assertEqual(matches[0].classification, MatchClass.UNCERTAIN)
+        self.assertEqual(matches[0].evidence_role, EvidenceRole.UNCERTAIN)
         self.assertEqual(
             derive_verdict(matches, cutoff_year_ah=500, coverage_complete=True),
             Verdict.INCONCLUSIVE,

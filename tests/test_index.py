@@ -24,9 +24,48 @@ class IndexTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_release_and_books_are_pinned(self):
-        self.assertEqual(self.index.metadata()["release"], "FIXTURE-ONLY")
+        metadata = self.index.metadata()
+        self.assertEqual(metadata["release"], "FIXTURE-ONLY")
+        self.assertEqual(metadata["content_kind"], "synthetic_fixture")
+        self.assertEqual(metadata["delivery_scope"], "fixture_only")
+        self.assertEqual(metadata["document_count"], "3")
+        self.assertEqual(metadata["offset_unit"], "unicode_code_points")
         self.assertTrue(self.index.declared_books_exist(("fixture-early", "fixture-late")))
         self.assertFalse(self.index.declared_books_exist(("missing",)))
+        self.assertEqual(
+            self.index.document_ids(),
+            ("fixture-early", "fixture-late", "fixture-markup"),
+        )
+
+    def test_document_provenance_and_hashes_are_exact(self):
+        document = self.index.get_document("fixture-early")
+        assert document is not None
+        self.assertEqual(document.work_id, "fixture-early")
+        self.assertEqual(document.source_format, "plain_text")
+        self.assertEqual(document.parser_version, "plain_text:v1")
+        self.assertEqual(document.license_id, "CC0-1.0")
+        self.assertEqual(document.provenance.author_death_year_ah, 370)
+        self.assertEqual(document.provenance.composition_date_ah, 350)
+        self.assertEqual(
+            document.provenance.author_date_source_uri,
+            "fixture://early/metadata#author-death",
+        )
+        self.assertEqual(len(document.source_sha256), 64)
+        self.assertEqual(len(document.raw_text_sha256), 64)
+
+    def test_database_build_is_byte_reproducible(self):
+        first = Path(self.temp.name) / "first.db"
+        second = Path(self.temp.name) / "second.db"
+        first_result = build_index(MANIFEST, first)
+        second_result = build_index(MANIFEST, second)
+        self.assertEqual(first.read_bytes(), second.read_bytes())
+        self.assertEqual(first_result["database_sha256"], second_result["database_sha256"])
+        self.assertEqual(first_result["corpus_sha256"], second_result["corpus_sha256"])
+
+    def test_tracked_fixture_database_matches_a_fresh_build(self):
+        rebuilt = Path(self.temp.name) / "tracked-comparison.db"
+        build_index(MANIFEST, rebuilt)
+        self.assertEqual((ROOT / "data" / "takhrij.db").read_bytes(), rebuilt.read_bytes())
 
     def test_exact_search_does_not_silently_strip_clitics(self):
         hits, total, truncated = self.index.search(
@@ -66,7 +105,7 @@ class IndexTests(unittest.TestCase):
         manifest["documents"][0].pop("calendar")
         path = Path(self.temp.name) / "missing-calendar.json"
         path.write_text(json.dumps(manifest), encoding="utf-8")
-        with self.assertRaisesRegex(ValueError, "explicitly AH"):
+        with self.assertRaisesRegex(ValueError, "missing required fields"):
             build_index(path, Path(self.temp.name) / "invalid.db")
 
 

@@ -9,6 +9,7 @@ steps:
         PYTHONPATH=src python -m unittest discover -s tests -v
         python -m compileall -q src scripts tests
         python scripts/check_runtime_providers.py
+        python scripts/check_corpus_boundary.py
 
   - id: build
     name: gcr.io/cloud-builders/docker

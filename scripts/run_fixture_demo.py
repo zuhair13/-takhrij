@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Exercise the intended verdict reversal against synthetic, non-evidentiary text."""
+"""Show why raw string matches are not automatically historical evidence."""
 
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 
 from takhrij.gate import IssuanceGate
 from takhrij.index import CorpusIndex
-from takhrij.models import AuditFinding, AuditReport, Claim, MatchClass
+from takhrij.index_builder import build_index
+from takhrij.models import AuditFinding, AuditReport, Claim, EvidenceRole, MatchClass
 from takhrij.pipeline import (
     apply_classifications,
     assemble_dossier,
@@ -17,29 +19,37 @@ from takhrij.pipeline import (
     retrieve_pass,
 )
 from takhrij.serde import plain
+from takhrij.verdict import is_qualifying_attestation
 
 
 def decisions(hits):
+    roles = {
+        "fixture-early": EvidenceRole.DIRECT_QUOTATION,
+        "fixture-markup": EvidenceRole.METALINGUISTIC_MENTION,
+        "fixture-late": EvidenceRole.INDEPENDENT_AUTHORIAL_USE,
+    }
     return [
         {
             "hit_key": hit.key,
             "classification": MatchClass.TARGET_USE.value,
-            "reason": "Synthetic fixture marks this as the intended evidentiary sense.",
+            "evidence_role": roles[hit.doc_id].value,
+            "reason": (
+                "Synthetic control: the surrounding sentence fixes this evidence role; "
+                "no historical inference is made."
+            ),
             "confidence": 1.0,
         }
         for hit in hits
     ]
 
 
-def main() -> None:
-    root = Path(__file__).resolve().parents[1]
-    index = CorpusIndex(root / "data" / "takhrij.db")
+def run_demo(index: CorpusIndex) -> None:
     claim = Claim(
         form="تخريج",
         target_sense="دليل يُستند إليه في الاستدلال",
         cutoff_year_ah=500,
         corpus_release="FIXTURE-ONLY",
-        book_ids=("fixture-early", "fixture-late"),
+        book_ids=("fixture-early", "fixture-markup", "fixture-late"),
     )
     initial_variants = expand_forms(claim.form, [], 64)
     initial_hits, initial_pass = retrieve_pass(
@@ -79,10 +89,27 @@ def main() -> None:
         audit=audit,
     )
     IssuanceGate(index).issue(dossier)
+    earlier_matches = [
+        item
+        for item in dossier.matches
+        if item.hit.provenance.comparison_year_ah is not None
+        and item.hit.provenance.comparison_year_ah < claim.cutoff_year_ah
+    ]
     print(
         json.dumps(
             {
                 "warning": "SYNTHETIC FIXTURE — NOT HISTORICAL EVIDENCE",
+                "point": (
+                    "Raw earlier strings can be quotations or mentions; only independent "
+                    "authorial target use satisfies the claim contract."
+                ),
+                "adjudication": {
+                    "raw_matches": len(dossier.matches),
+                    "raw_matches_before_cutoff": len(earlier_matches),
+                    "qualifying_independent_before_cutoff": sum(
+                        is_qualifying_attestation(item) for item in earlier_matches
+                    ),
+                },
                 "provisional_verdict": provisional.value,
                 "final_dossier": plain(dossier),
             },
@@ -90,6 +117,14 @@ def main() -> None:
             indent=2,
         )
     )
+
+
+def main() -> None:
+    root = Path(__file__).resolve().parents[1]
+    with tempfile.TemporaryDirectory(prefix="takhrij-fixture-") as directory:
+        database = Path(directory) / "fixture.db"
+        build_index(root / "config" / "corpus_manifest.fixture.json", database)
+        run_demo(CorpusIndex(database))
 
 
 if __name__ == "__main__":

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from takhrij.index import CorpusIndex
-from takhrij.models import Dossier, MatchClass, Verdict
-from takhrij.verdict import derive_verdict
+from takhrij.models import Dossier, Verdict
+from takhrij.verdict import derive_verdict, is_qualifying_attestation
 
 
 class IssuanceRejected(RuntimeError):
@@ -58,6 +60,10 @@ class IssuanceGate:
             if document is None:
                 errors.append(f"missing_source:{hit.key}")
                 continue
+            if hashlib.sha256(document.raw_text.encode("utf-8")).hexdigest() != (
+                document.raw_text_sha256
+            ):
+                errors.append(f"document_hash_mismatch:{hit.key}")
             if not self.index.verify_raw_span(hit.doc_id, hit.raw_start, hit.raw_end, hit.raw_form):
                 errors.append(f"quote_mismatch:{hit.key}")
             if hit.match != hit.raw_form:
@@ -72,6 +78,15 @@ class IssuanceGate:
             if (
                 hit.source_uri != document.source_uri
                 or hit.corpus_release != document.corpus_release
+                or hit.work_id != document.work_id
+                or hit.language != document.language
+                or hit.source_format != document.source_format
+                or hit.parser_version != document.parser_version
+                or hit.source_sha256 != document.source_sha256
+                or hit.raw_text_sha256 != document.raw_text_sha256
+                or hit.license_id != document.license_id
+                or hit.license_uri != document.license_uri
+                or hit.selection_reason != document.selection_reason
             ):
                 errors.append(f"source_metadata_mismatch:{hit.key}")
             if hit.provenance != document.provenance:
@@ -86,7 +101,7 @@ class IssuanceGate:
             errors.append("verdict_not_derived_from_evidence")
         if dossier.verdict is Verdict.EARLIER_MATCH_FOUND:
             has_evidence = any(
-                item.classification is MatchClass.TARGET_USE
+                is_qualifying_attestation(item)
                 and item.hit.provenance.comparison_year_ah is not None
                 and item.hit.provenance.comparison_year_ah < dossier.claim.cutoff_year_ah
                 for item in dossier.matches

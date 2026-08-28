@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Iterable
+from contextlib import closing
 from pathlib import Path
 
 from takhrij.models import Document, Provenance, RetrievalHit, Variant
@@ -23,18 +24,23 @@ class CorpusIndex:
         return connection
 
     def metadata(self) -> dict[str, str]:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             return dict(connection.execute("SELECT key, value FROM corpus_metadata").fetchall())
 
     def document_exists(self, doc_id: str) -> bool:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 "SELECT 1 FROM documents WHERE doc_id = ?", (doc_id,)
             ).fetchone()
         return row is not None
 
+    def document_ids(self) -> tuple[str, ...]:
+        with closing(self._connect()) as connection:
+            rows = connection.execute("SELECT doc_id FROM documents ORDER BY doc_id").fetchall()
+        return tuple(row["doc_id"] for row in rows)
+
     def get_document(self, doc_id: str) -> Document | None:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 "SELECT * FROM documents WHERE doc_id = ?", (doc_id,)
             ).fetchone()
@@ -45,7 +51,7 @@ class CorpusIndex:
         if not expected:
             return False
         placeholders = ",".join("?" for _ in expected)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             rows = connection.execute(
                 f"SELECT doc_id FROM documents WHERE doc_id IN ({placeholders})", tuple(expected)
             ).fetchall()
@@ -72,7 +78,7 @@ class CorpusIndex:
         book_slots = ",".join("?" for _ in book_ids)
         where = f"p.normalized_form IN ({form_slots}) AND p.doc_id IN ({book_slots})"
         params = (*normalized_forms, *book_ids)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             total = int(
                 connection.execute(
                     f"SELECT COUNT(*) FROM postings p WHERE {where}", params
@@ -81,9 +87,16 @@ class CorpusIndex:
             rows = connection.execute(
                 f"""
                 SELECT p.normalized_form, p.doc_id, p.raw_start, p.raw_end, p.token_index,
-                       d.title, d.author, d.raw_text, d.source_uri, d.corpus_release,
+                       d.work_id, d.title, d.author, d.raw_text, d.source_uri, d.corpus_release,
+                       d.language, d.source_format, d.parser_version,
+                       d.source_sha256, d.raw_text_sha256, d.license_id, d.license_uri,
+                       d.selection_reason,
                        d.author_death_year_ah, d.composition_date_ah,
-                       d.edition_date, d.witness_date
+                       d.metadata_source_uri, d.author_date_source_uri,
+                       d.composition_date_source_uri, d.edition_citation,
+                       d.edition_date, d.edition_source_uri, d.witness_description,
+                       d.witness_date, d.witness_source_uri,
+                       d.quality_status, d.quality_notes
                   FROM postings p
                   JOIN documents d ON d.doc_id = p.doc_id
                  WHERE {where}
@@ -121,9 +134,27 @@ class CorpusIndex:
                     provenance=Provenance(
                         author_death_year_ah=row["author_death_year_ah"],
                         composition_date_ah=row["composition_date_ah"],
+                        metadata_source_uri=row["metadata_source_uri"],
+                        author_date_source_uri=row["author_date_source_uri"],
+                        composition_date_source_uri=row["composition_date_source_uri"],
+                        edition_citation=row["edition_citation"],
                         edition_date=row["edition_date"],
+                        edition_source_uri=row["edition_source_uri"],
+                        witness_description=row["witness_description"],
                         witness_date=row["witness_date"],
+                        witness_source_uri=row["witness_source_uri"],
+                        quality_status=row["quality_status"],
+                        quality_notes=row["quality_notes"],
                     ),
+                    work_id=row["work_id"],
+                    language=row["language"],
+                    source_format=row["source_format"],
+                    parser_version=row["parser_version"],
+                    source_sha256=row["source_sha256"],
+                    raw_text_sha256=row["raw_text_sha256"],
+                    license_id=row["license_id"],
+                    license_uri=row["license_uri"],
+                    selection_reason=row["selection_reason"],
                 )
             )
         return hits, total, total > max_hits
@@ -140,7 +171,25 @@ def _row_to_document(row: sqlite3.Row) -> Document:
         provenance=Provenance(
             author_death_year_ah=row["author_death_year_ah"],
             composition_date_ah=row["composition_date_ah"],
+            metadata_source_uri=row["metadata_source_uri"],
+            author_date_source_uri=row["author_date_source_uri"],
+            composition_date_source_uri=row["composition_date_source_uri"],
+            edition_citation=row["edition_citation"],
             edition_date=row["edition_date"],
+            edition_source_uri=row["edition_source_uri"],
+            witness_description=row["witness_description"],
             witness_date=row["witness_date"],
+            witness_source_uri=row["witness_source_uri"],
+            quality_status=row["quality_status"],
+            quality_notes=row["quality_notes"],
         ),
+        work_id=row["work_id"],
+        language=row["language"],
+        source_format=row["source_format"],
+        parser_version=row["parser_version"],
+        source_sha256=row["source_sha256"],
+        raw_text_sha256=row["raw_text_sha256"],
+        license_id=row["license_id"],
+        license_uri=row["license_uri"],
+        selection_reason=row["selection_reason"],
     )

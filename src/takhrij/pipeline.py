@@ -11,6 +11,7 @@ from takhrij.models import (
     Claim,
     ClassifiedMatch,
     Dossier,
+    EvidenceRole,
     MatchClass,
     RetrievalHit,
     SearchPass,
@@ -64,26 +65,39 @@ def apply_classifications(
         decision = decision_map.get(hit.key)
         if decision is None:
             classified.append(
-                ClassifiedMatch(hit, MatchClass.UNCERTAIN, "No model decision returned.", 0.0)
+                ClassifiedMatch(
+                    hit,
+                    MatchClass.UNCERTAIN,
+                    EvidenceRole.UNCERTAIN,
+                    "No model decision returned.",
+                    0.0,
+                )
             )
             continue
         try:
             label = MatchClass(str(decision.get("classification")))
+            evidence_role = EvidenceRole(str(decision.get("evidence_role")))
             confidence = float(decision.get("confidence", 0.0))
         except (TypeError, ValueError):
             label = MatchClass.UNCERTAIN
+            evidence_role = EvidenceRole.UNCERTAIN
             confidence = 0.0
         if not 0.0 <= confidence <= 1.0:
             label = MatchClass.UNCERTAIN
+            evidence_role = EvidenceRole.UNCERTAIN
             confidence = 0.0
         reason = str(decision.get("reason") or "No reason supplied.")
-        if label is not MatchClass.UNCERTAIN and confidence < MIN_CLASSIFICATION_CONFIDENCE:
+        if (
+            label is not MatchClass.UNCERTAIN
+            or evidence_role is not EvidenceRole.UNCERTAIN
+        ) and confidence < MIN_CLASSIFICATION_CONFIDENCE:
             label = MatchClass.UNCERTAIN
+            evidence_role = EvidenceRole.UNCERTAIN
             reason = (
                 f"Below deterministic confidence threshold "
                 f"({confidence:.2f} < {MIN_CLASSIFICATION_CONFIDENCE:.2f}). {reason}"
             )
-        classified.append(ClassifiedMatch(hit, label, reason, confidence))
+        classified.append(ClassifiedMatch(hit, label, evidence_role, reason, confidence))
     return classified
 
 
@@ -141,7 +155,12 @@ def assemble_dossier(
         "Author death year is a comparison proxy, not the date a form entered the language.",
         (
             "The Gate verifies quotations, offsets, source resolution, and metadata; "
-            "semantic classifications remain model judgements."
+            "semantic and evidence-role classifications remain model judgements."
+        ),
+        (
+            "A source container date does not date wording quoted from another voice; direct "
+            "quotation, attribution, metalinguistic mention, and formulaic allusion are excluded "
+            "from independent authorial attestation."
         ),
         "Version 1 searches single tokens only.",
     ]

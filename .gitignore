@@ -7,7 +7,15 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-data/*.db-shm
-data/*.db-wal
+/corpus/
+/approved-corpus/
+/.corpus-approval/
+/data/*
+*.db
+*.sqlite*
+*.mARkdown
+*.completed
 config/corpus_manifest.json
+/config/corpus_manifest.approved.json
 config/*.secret.json
+!/data/takhrij.db

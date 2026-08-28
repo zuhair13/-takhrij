@@ -1,0 +1,7 @@
+######OpenITI#
+#META# 000.BookURI :: fixture-markup
+#META# 010.AuthorNAME :: Synthetic Fixture
+#META#Header#End#
+### | عنوان تجريبي
+# هذا نَصٌّ PageV01P001 مصطنع لا يُستعمل دليلاً تاريخياً.
+~~ وفيه قولنا: لفظ بالتَّخْرِيجِ %~% مثال لغوي مصنوع، والشاهد msA1 واضح.

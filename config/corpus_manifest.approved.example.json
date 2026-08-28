@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "release": "REPLACE_WITH_APPROVED_PINNED_RELEASE",
+  "release_date": "REPLACE_WITH_RELEASE_DATE",
+  "release_uri": "REPLACE_WITH_RELEASE_RECORD_URI",
+  "release_doi": "REPLACE_WITH_RELEASE_DOI",
+  "content_kind": "approved_corpus",
+  "license": {
+    "id": "REPLACE_WITH_EXACT_LICENSE_ID",
+    "uri": "REPLACE_WITH_EXACT_LICENSE_URI"
+  },
+  "attribution": "REPLACE_WITH_REQUIRED_RELEASE_AND_SOURCE_ATTRIBUTION",
+  "approval": {
+    "status": "written_permission_required",
+    "reference": "REPLACE_WITH_WRITTEN_PERMISSION_RECORD_REFERENCE"
+  },
+  "source_root_env": "TAKHRIJ_APPROVED_CORPUS_ROOT",
+  "documents": [
+    {
+      "doc_id": "REPLACE_WITH_APPROVED_VERSION_ID",
+      "work_id": "REPLACE_WITH_APPROVED_WORK_ID",
+      "title": "REPLACE_WITH_VERIFIED_TITLE",
+      "author": "REPLACE_WITH_VERIFIED_AUTHOR",
+      "path": "REPLACE_WITH_FILENAME_RELATIVE_TO_EXTERNAL_ROOT",
+      "source_uri": "REPLACE_WITH_PINNED_SOURCE_URI",
+      "source_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "source_format": "openiti_mARkdown",
+      "language": "ara",
+      "calendar": "AH",
+      "selection_reason": "REPLACE_WITH_DOCUMENTED_SELECTION_REASON",
+      "provenance": {
+        "metadata_source_uri": "REPLACE_WITH_PINNED_METADATA_SOURCE_URI",
+        "author_death_year_ah": null,
+        "author_date_source_uri": null,
+        "composition_date_ah": null,
+        "composition_date_source_uri": null,
+        "edition_citation": null,
+        "edition_date": null,
+        "edition_source_uri": null,
+        "witness_description": null,
+        "witness_date": null,
+        "witness_source_uri": null,
+        "quality_status": "unreviewed",
+        "quality_notes": "REPLACE_AFTER_APPROVAL_AND_SOURCE_REVIEW"
+      }
+    }
+  ]
+}

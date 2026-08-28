@@ -9,13 +9,27 @@
   <body>
     <main>
       <header>
-        <p class="eyebrow">CORPUS-BOUNDED EVIDENCE · دليل مقيّد بالمدوّنة</p>
+        <p class="eyebrow">ATTESTATION INTELLIGENCE · استخبارات الشاهد النصّي</p>
         <h1>TAKHRIJ <span>تخريج</span></h1>
         <p class="lead">
-          Tests one falsifiable claim and then audits its own search.
-          <bdi dir="rtl">يختبر ادعاءً قابلاً للتفنيد، ثم يدقّق بحثه بنفسه.</bdi>
+          A word found in a book is not necessarily a word used by its author.
+          <bdi dir="rtl">وجود اللفظة في كتاب لا يعني أن مؤلفه استعملها.</bdi>
+        </p>
+        <p class="sublead">
+          Search finds strings. TAKHRIJ determines which matches count as historical evidence.
+          <bdi dir="rtl">البحث يجد النص؛ وتخريج يحدّد أيّ تطابق يصلح دليلاً تاريخياً.</bdi>
         </p>
       </header>
+
+      {% if redacted %}
+      <aside class="redaction-banner">
+        <strong>Local licensed-corpus mode · وضع المتن المرخّص محلياً</strong>
+        <p>
+          Corpus quotations and free-form model rationales are redacted server-side.
+          <bdi dir="rtl">تُحجب نصوص المتن وتعليلات النموذج على الخادم؛ وتبقى المعرّفات والإزاحات والتصنيفات.</bdi>
+        </p>
+      </aside>
+      {% endif %}
 
       <section class="card" aria-labelledby="claim-heading">
         <h2 id="claim-heading">New claim <bdi dir="rtl">· ادعاء جديد</bdi></h2>
@@ -32,7 +46,7 @@
             Cutoff year (AH) <bdi dir="rtl">· السنة الحدّية (هـ)</bdi>
             <input id="cutoff_year_ah" name="cutoff_year_ah" type="number" min="1" max="1600" required inputmode="numeric" placeholder="500">
           </label>
-          <button type="submit">Run adversarial search <bdi dir="rtl">· ابدأ البحث المضاد</bdi></button>
+          <button type="submit">Adjudicate the evidence <bdi dir="rtl">· افصل في الشواهد</bdi></button>
         </form>
         <p class="boundary">
           Release: <code>{{ release }}</code> · Books: {{ books }} · Hard match limit: {{ max_matches }}

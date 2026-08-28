@@ -66,6 +66,7 @@ class ConfigTests(unittest.TestCase):
             "MAX_JOBS_PER_DAY": "7",
             "MAX_DELIVERY_ATTEMPTS": "4",
             "LOCAL_INLINE_WORKER": "yes",
+            "REDACT_CORPUS_TEXT": "true",
         }
         with patch.dict("os.environ", environment, clear=True):
             settings = load_settings()
@@ -77,6 +78,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(settings.max_jobs_per_day, 7)
         self.assertEqual(settings.max_delivery_attempts, 4)
         self.assertTrue(settings.local_inline_worker)
+        self.assertTrue(settings.redact_corpus_text)
 
 
 if __name__ == "__main__":
