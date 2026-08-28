@@ -11,12 +11,13 @@ database or public corpus service.
 - five source SHA-256 values: recorded per document in the manifest;
 - claim: `config/claims/TAKHRIJ-DIZA-01.json`;
 - current contract SHA-256:
-  `06f36ccf89aa4929323138964a6bd4ddb107baabcda3ba93cb3bc9e8e7f891e6`.
+  `4f4f3e538feac219a15d2217d665a05e2945b733480c1d324f1115c68befce13`.
 
 The contract tests independent authorial use of `ضيزى` before 500 AH. Direct quotation,
 attributed quotation, metalinguistic mention, and formulaic allusion do not qualify even when the
-word has the target sense. The earlier conceptual hash is retained in the claim envelope because
-version 2 replaces the former one-axis quotation treatment with explicit evidence roles.
+word has the target sense. Version 3 corrects the three pinned Shamela source paths to their
+actual `.mARkdown` filenames without changing the claim predicate. The version 2 contract hash
+and the earlier conceptual hash remain in the claim envelope for lineage.
 
 ## Preflight
 
