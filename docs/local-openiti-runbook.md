@@ -60,6 +60,19 @@ The script:
 The temporary database is deleted when the process exits. Keep the redacted JSON outside the
 repository; it is a run artifact, not application source.
 
+## Local result page
+
+After a successful run, display the post-Gate redacted JSON through the existing bilingual UI:
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/serve_redacted_result.py \
+  /absolute/external/takhrij-diza-redacted.json --port 8080
+```
+
+Open port 8080 through Cloud Shell Web Preview. The viewer is read-only, adds no model call, sends
+no corpus text to the browser, and refuses any result that lacks a clean Gate pass, local-only
+scope, both redaction declarations, or that still contains a raw quotation/rationale field.
+
 ## What may be shown
 
 Safe display fields include release/manifest/database hashes, book IDs, document/version IDs,
