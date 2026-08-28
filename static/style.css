@@ -72,6 +72,8 @@ button:disabled { opacity: .55; cursor: wait; }
   border-radius: 10px;
   padding: 12px;
 }
+.variants-panel { margin: 16px 0; }
+.variants-panel summary { color: var(--accent-dark); font-weight: 800; cursor: pointer; }
 .variant-list { display: flex; flex-wrap: wrap; gap: 7px; padding: 0; list-style: none; }
 .variant-list li { border: 1px solid var(--line); border-radius: 99px; padding: 5px 10px; background: white; }
 .match { border-top: 1px solid var(--line); padding: 16px 0; }
@@ -82,6 +84,9 @@ mark { background: #ffe48e; padding: 0 2px; }
 .provenance { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; font-size: .82rem; }
 .provenance dt { color: var(--muted); }
 .provenance dd { margin: 0; font-weight: 700; }
+.run-summary dd { max-width: 430px; text-align: end; overflow-wrap: anywhere; }
+.run-summary .digest { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; }
+.run-card { border-top: 5px solid var(--accent); }
 aside { color: var(--muted); box-shadow: none; }
 aside p { margin-bottom: 0; line-height: 1.6; }
 code { overflow-wrap: anywhere; }
