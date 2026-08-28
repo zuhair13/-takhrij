@@ -83,7 +83,7 @@ class ResultViewerTests(unittest.TestCase):
         page = response.get_data(as_text=True)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Cache-Control"], "no-store, private")
-        self.assertIn("LIVE GOOGLE CLOUD RUN", page)
+        self.assertIn("LIVE RUN ON GOOGLE CLOUD", page)
         self.assertIn("NO_EARLIER_MATCH_IN_DECLARED_CORPUS", page)
         self.assertIn("book-a", page)
         self.assertNotIn("licensed secret", page)
