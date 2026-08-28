@@ -209,6 +209,21 @@ class ManifestTests(unittest.TestCase):
         self.assertTrue(any(".Shia" in item for item in ids))
         self.assertIn("0505Ghazali.Munqidh.JK009330-ara1", ids)
         self.assertFalse(any("Munqidh.Shamela" in item for item in ids))
+        expected_source_names = [
+            "0276IbnQutaybaDinawari.AdabKatib.Shamela0026349-ara1.mARkdown",
+            "0414AbuHayyanTawhidi.AkhlaqWazirayn.Shamela0012541-ara1.mARkdown",
+            "0456IbnHazm.TawqHamama.Shamela0010518-ara1.mARkdown",
+            "0505Ghazali.Munqidh.JK009330-ara1",
+            "0598IbnIdrisHilli.MustatrafatSarair.Shia001352-ara1",
+        ]
+        self.assertEqual(
+            [Path(item.path).name for item in manifest.documents],
+            expected_source_names,
+        )
+        self.assertEqual(
+            [item.source_uri.rsplit("/", 1)[-1] for item in manifest.documents],
+            expected_source_names,
+        )
 
     def test_diza_claim_contract_hash_and_corpus_binding_are_reproducible(self):
         envelope = json.loads(DIZA_CLAIM.read_text(encoding="utf-8"))
