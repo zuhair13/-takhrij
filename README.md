@@ -57,7 +57,7 @@ the fixture until distribution permission covers the derived index.
 | Public OpenITI image | Blocked until distribution permission covers the derived index and service |
 | Live Gemini integration | Verified end-to-end on Cloud Run against the synthetic fixture; Firestore/Pub/Sub production activation remains licence-gated |
 
-Verification snapshot (29 Aug 2026): 92 tests pass with 86% branch coverage, including an actual
+Verification snapshot (29 Aug 2026): 94 tests pass with 86% branch coverage, including an actual
 ADK `Runner` execution with all six registered `FunctionTool` objects observed in the run.
 Ruff, Python compilation, Node JavaScript syntax, Bash syntax, Cloud Build YAML parsing, the
 corpus-boundary scan, and the runtime-provider scan are clean.
