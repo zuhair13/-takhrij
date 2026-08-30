@@ -83,6 +83,13 @@ class ApprovedImageBuildTests(unittest.TestCase):
         self.assertEqual(result["approval_status"], "written_permission_granted")
 
     def test_docker_image_gate_allows_fixture_and_requires_approved_opt_in(self):
+        cloudbuild = (ROOT / "cloudbuild.yaml").read_text(encoding="utf-8")
+        self.assertIn("APP_ENV=${_APP_ENV}", cloudbuild)
+        self.assertIn("LOCAL_INLINE_WORKER=${_LOCAL_INLINE_WORKER}", cloudbuild)
+        self.assertIn("_APP_ENV: development", cloudbuild)
+        self.assertIn('_LOCAL_INLINE_WORKER: "true"', cloudbuild)
+        self.assertNotIn("APP_ENV=production", cloudbuild)
+
         fixture_database = ROOT / "data" / "takhrij.db"
         fixture_metadata = verify_image_database(fixture_database, "fixture_only")
         self.assertEqual(fixture_metadata["content_kind"], "synthetic_fixture")
