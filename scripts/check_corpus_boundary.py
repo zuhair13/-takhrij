@@ -49,6 +49,10 @@ REQUIRED_DOCKERIGNORE = {
     "config/corpus_manifest.approved.json",
     "!data/takhrij.db",
 }
+REQUIRED_GCLOUDIGNORE = {
+    ".git",
+    "#!include:.gitignore",
+}
 REQUIRED_MANIFEST_RULES = {
     "prune corpus",
     "prune approved-corpus",
@@ -151,13 +155,19 @@ def _missing_lines(path: Path, required: set[str]) -> list[str]:
     lines = {
         line.strip()
         for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
+        if line.strip()
+        and (
+            not line.lstrip().startswith("#")
+            or line.lstrip().startswith("#!include:")
+        )
     }
     return sorted(required - lines)
 
 
 def find_build_context_gaps(root: Path) -> list[str]:
     findings: list[str] = []
+    for item in _missing_lines(root / ".gcloudignore", REQUIRED_GCLOUDIGNORE):
+        findings.append(f".gcloudignore: missing {item}")
     for item in _missing_lines(root / ".gitignore", REQUIRED_GITIGNORE):
         findings.append(f".gitignore: missing {item}")
     for item in _missing_lines(root / ".dockerignore", REQUIRED_DOCKERIGNORE):
