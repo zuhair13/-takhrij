@@ -24,7 +24,7 @@ only after a deterministic Issuance Gate verifies every quote, source, offset, d
 evidence-to-verdict derivation.
 
 This repository implements Revision 4.1. It intentionally contains no OpenITI corpus. The tracked
-`data/takhrij.db` is a byte-reproducible database built only from repository-authored synthetic
+`data/takhrij.db` is a canonically reproducible database built only from repository-authored synthetic
 texts under `tests/fixtures`; it preserves the frozen fixture-image deployment and is never
 historical evidence. Tests also rebuild databases in temporary paths.
 
@@ -65,8 +65,11 @@ Cloud Build successfully built the container, and Cloud Run served a complete li
 adjudication at https://takhrij-39896183136.us-central1.run.app. The hosted service contains only
 repository-authored synthetic fixture content and is not historical evidence.
 
-The three-document synthetic build is byte-reproducible. Its size and build time validate the
-workflow only; they are not production-corpus estimates.
+The three-document synthetic build is logically reproducible across SQLite file-layout versions.
+`database_sha256` identifies the exact published file; `logical_database_sha256` hashes the
+project schema, `user_version`, ordered metadata, ordered documents, and ordered postings with
+explicit type and length encoding. Its size and build time validate the workflow only; they are
+not production-corpus estimates.
 
 ## Architecture
 
@@ -168,7 +171,7 @@ similarity. Similarity search would add silent false positives without answering
 - A non-`uncertain` semantic or evidence-role decision below the deterministic 0.80 confidence
   floor converts both axes to `uncertain`; low-confidence judgement can never break the claim.
 - Approved source roots and derived databases stay outside the repository. The only tracked
-  database is the byte-reproducible synthetic fixture. Git, Python-package, Docker-context, and
+  database is the canonically reproducible synthetic fixture. Git, Python-package, Docker-context, and
   workspace scans reject other corpus artifacts; production startup rejects fixture databases.
 - The default Docker build bakes the fixture database at `/app/data/takhrij.db`. A real database
   can enter an isolated image context only through the written-permission and explicit-opt-in
