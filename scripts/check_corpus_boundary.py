@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -63,6 +64,20 @@ REQUIRED_MANIFEST_RULES = {
 
 
 def _tracked_files(root: Path) -> list[Path]:
+    # ``gcloud builds submit`` uploads a source archive, not the checkout's
+    # ``.git`` directory.  In that environment every file in the archive is
+    # part of the submitted build context, so scanning the workspace is the
+    # fail-closed equivalent of scanning Git's index.
+    if not (root / ".git").exists() or shutil.which("git") is None:
+        return sorted(
+            path.relative_to(root)
+            for path in root.rglob("*")
+            if path.is_file()
+            and not any(
+                part in SKIP_DIRECTORIES for part in path.relative_to(root).parts
+            )
+        )
+
     result = subprocess.run(
         ["git", "ls-files", "-z"],
         cwd=root,
