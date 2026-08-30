@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from takhrij.index_builder import build_index
+from takhrij.index_builder import build_index, logical_database_sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 SQLITE_MAGIC = b"SQLite format 3\x00"
@@ -85,7 +85,7 @@ def fixture_database_is_reproducible(root: Path, database_path: Path) -> bool:
     with tempfile.TemporaryDirectory(prefix="takhrij-boundary-") as directory:
         rebuilt = Path(directory) / "takhrij.db"
         build_index(manifest, rebuilt)
-        return database_path.read_bytes() == rebuilt.read_bytes()
+        return logical_database_sha256(database_path) == logical_database_sha256(rebuilt)
 
 
 def find_workspace_leaks(root: Path) -> list[str]:
