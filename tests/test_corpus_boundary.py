@@ -29,8 +29,12 @@ class CorpusBoundaryTests(unittest.TestCase):
             (root / "leaked.db").write_bytes(b"SQLite format 3\x00" + b"x" * 20)
             (root / "leaked.mARkdown").write_bytes(b"######OpenITI#\nsynthetic leak test")
             findings = find_workspace_leaks(root)
+            submitted_findings = find_tracked_leaks(root)
         self.assertTrue(any("SQLite database" in finding for finding in findings))
         self.assertTrue(any("OpenITI content" in finding for finding in findings))
+        self.assertTrue(
+            any("derived-data file type" in finding for finding in submitted_findings)
+        )
 
 
 if __name__ == "__main__":
