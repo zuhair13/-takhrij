@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import shutil
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
 from takhrij.index import CorpusIndex
-from takhrij.index_builder import build_index
+from takhrij.index_builder import build_index, logical_database_sha256
 from takhrij.models import Variant
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,19 +56,48 @@ class IndexTests(unittest.TestCase):
         self.assertEqual(len(document.source_sha256), 64)
         self.assertEqual(len(document.raw_text_sha256), 64)
 
-    def test_database_build_is_byte_reproducible(self):
+    def test_database_build_is_logically_reproducible(self):
         first = Path(self.temp.name) / "first.db"
         second = Path(self.temp.name) / "second.db"
         first_result = build_index(MANIFEST, first)
         second_result = build_index(MANIFEST, second)
-        self.assertEqual(first.read_bytes(), second.read_bytes())
-        self.assertEqual(first_result["database_sha256"], second_result["database_sha256"])
+        self.assertEqual(
+            first_result["database_sha256"], hashlib.sha256(first.read_bytes()).hexdigest()
+        )
+        self.assertEqual(
+            second_result["database_sha256"], hashlib.sha256(second.read_bytes()).hexdigest()
+        )
+        self.assertEqual(
+            first_result["logical_database_sha256"],
+            second_result["logical_database_sha256"],
+        )
         self.assertEqual(first_result["corpus_sha256"], second_result["corpus_sha256"])
+
+        rewritten = Path(self.temp.name) / "rewritten.db"
+        shutil.copyfile(first, rewritten)
+        with sqlite3.connect(rewritten) as connection:
+            connection.execute("PRAGMA page_size = 8192")
+            connection.execute("VACUUM")
+        self.assertNotEqual(first.read_bytes(), rewritten.read_bytes())
+        self.assertEqual(
+            logical_database_sha256(first),
+            logical_database_sha256(rewritten),
+        )
 
     def test_tracked_fixture_database_matches_a_fresh_build(self):
         rebuilt = Path(self.temp.name) / "tracked-comparison.db"
+        changed = Path(self.temp.name) / "changed-comparison.db"
         build_index(MANIFEST, rebuilt)
-        self.assertEqual((ROOT / "data" / "takhrij.db").read_bytes(), rebuilt.read_bytes())
+        tracked_digest = logical_database_sha256(ROOT / "data" / "takhrij.db")
+        self.assertEqual(tracked_digest, logical_database_sha256(rebuilt))
+
+        shutil.copyfile(rebuilt, changed)
+        with sqlite3.connect(changed) as connection:
+            connection.execute(
+                "UPDATE corpus_metadata SET value = ? WHERE key = ?",
+                ("changed", "attribution"),
+            )
+        self.assertNotEqual(tracked_digest, logical_database_sha256(changed))
 
     def test_exact_search_does_not_silently_strip_clitics(self):
         hits, total, truncated = self.index.search(
