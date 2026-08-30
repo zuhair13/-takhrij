@@ -24,6 +24,7 @@ from takhrij.manifest import (
 from takhrij.normalization import normalize_token, tokenize_with_offsets
 
 SCHEMA_VERSION = 5
+LOGICAL_DATABASE_FORMAT_VERSION = 1
 APPROVED_STATUS = "written_permission_granted"
 FIXTURE_SCOPE = "fixture_only"
 LOCAL_ONLY_SCOPE = "local_only"
@@ -83,6 +84,71 @@ CREATE TABLE postings (
 CREATE INDEX idx_normalized_form ON postings(normalized_form);
 CREATE INDEX idx_posting_doc ON postings(doc_id);
 """
+
+
+def _update_typed_value(digest: Any, value: Any) -> None:
+    """Add one unambiguous SQLite value to a logical database digest."""
+    if value is None:
+        tag, payload = b"null", b""
+    elif isinstance(value, int):
+        tag, payload = b"integer", str(value).encode("ascii")
+    elif isinstance(value, float):
+        tag, payload = b"real", value.hex().encode("ascii")
+    elif isinstance(value, str):
+        tag, payload = b"text", value.encode("utf-8")
+    elif isinstance(value, bytes):
+        tag, payload = b"blob", value
+    else:  # pragma: no cover - sqlite3 returns only the types above
+        raise TypeError(f"unsupported SQLite value type: {type(value).__name__}")
+    digest.update(len(tag).to_bytes(2, "big"))
+    digest.update(tag)
+    digest.update(len(payload).to_bytes(8, "big"))
+    digest.update(payload)
+
+
+def _update_logical_rows(digest: Any, label: str, rows: list[tuple[Any, ...]]) -> None:
+    _update_typed_value(digest, label)
+    _update_typed_value(digest, len(rows))
+    for row in rows:
+        _update_typed_value(digest, len(row))
+        for value in row:
+            _update_typed_value(digest, value)
+
+
+def logical_database_sha256(database_path: Path | str) -> str:
+    """Hash TAKHRIJ schema and rows independently of SQLite file layout."""
+    path = Path(database_path).resolve()
+    digest = hashlib.sha256()
+    digest.update(f"takhrij-logical-database-v{LOGICAL_DATABASE_FORMAT_VERSION}\n".encode("ascii"))
+    with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as connection:
+        connection.execute("PRAGMA query_only = ON")
+        user_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+        _update_typed_value(digest, "user_version")
+        _update_typed_value(digest, user_version)
+
+        schema_rows = connection.execute(
+            """
+            SELECT type, name, tbl_name, sql
+              FROM sqlite_schema
+             WHERE name NOT LIKE 'sqlite_%'
+             ORDER BY type, name, tbl_name
+            """
+        ).fetchall()
+        _update_logical_rows(digest, "schema", schema_rows)
+
+        logical_queries = (
+            ("corpus_metadata", "SELECT key, value FROM corpus_metadata ORDER BY key"),
+            ("documents", "SELECT * FROM documents ORDER BY doc_id"),
+            (
+                "postings",
+                """SELECT normalized_form, doc_id, raw_start, raw_end, token_index
+                     FROM postings
+                 ORDER BY doc_id, raw_start, raw_end, normalized_form, token_index""",
+            ),
+        )
+        for label, query in logical_queries:
+            _update_logical_rows(digest, label, connection.execute(query).fetchall())
+    return digest.hexdigest()
 
 
 def _repository_root(manifest_path: Path) -> Path:
@@ -269,9 +335,11 @@ def build_index(
         raise
 
     database_sha256 = hashlib.sha256(output_path.read_bytes()).hexdigest()
+    logical_sha256 = logical_database_sha256(output_path)
     return {
         **metadata,
         "database_sha256": database_sha256,
+        "logical_database_sha256": logical_sha256,
         "build_seconds": round(time.perf_counter() - started, 3),
         "output": str(output_path),
     }
